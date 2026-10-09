@@ -1,15 +1,12 @@
 import 'dotenv/config';
 import { createApp } from './app';
 import { connectDb } from './config/db';
-import { loadEnv } from './config/env';
+import { loadEnv, toAppConfig } from './config/env';
 
 async function bootstrap() {
   const env = loadEnv();
   const db = await connectDb(env.MONGODB_URI);
-  const app = createApp({
-    version: env.APP_VERSION,
-    staticDir: env.STATIC_DIR,
-  });
+  const app = createApp(toAppConfig(env));
 
   const server = app.listen(env.PORT, env.HOST, () => {
     console.log(

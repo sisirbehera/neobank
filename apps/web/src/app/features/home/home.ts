@@ -1,17 +1,27 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { Amount, Button, Card, InrPipe } from '@neobank/web/ui';
+import { AuthStore } from '../../core/auth/auth.store';
 import { SystemStatusStore } from '../../core/system/system-status.store';
 
 @Component({
   selector: 'nb-home',
-  imports: [Card, Button, Amount, InrPipe],
+  imports: [RouterLink, Card, Button, Amount, InrPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="mb-4">
       <h1 class="h3">Welcome to NeoBank</h1>
-      <p class="text-body-secondary mb-0">
-        Day 1 scaffold – monorepo, API, database and themed UI kit are wired up.
+      <p class="text-body-secondary">
+        A demo digital bank built with Angular, Express and MongoDB.
       </p>
+      <div class="d-flex gap-2">
+        @if (auth.isAuthenticated()) {
+          <a nbButton routerLink="/dashboard">Go to dashboard</a>
+        } @else {
+          <a nbButton routerLink="/register">Open an account</a>
+          <a nbButton variant="outline-primary" routerLink="/login">Log in</a>
+        }
+      </div>
     </header>
 
     <div class="row g-4">
@@ -101,4 +111,5 @@ import { SystemStatusStore } from '../../core/system/system-status.store';
 })
 export class Home {
   protected readonly store = inject(SystemStatusStore);
+  protected readonly auth = inject(AuthStore);
 }

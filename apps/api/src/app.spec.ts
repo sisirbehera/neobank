@@ -1,9 +1,10 @@
 import request from 'supertest';
 import { ApiErrorSchema, HealthResponseSchema } from '@neobank/shared/models';
 import { createApp } from './app';
+import { testConfig } from './test/test-config';
 
 describe('API app', () => {
-  const app = createApp({ version: 'test' });
+  const app = createApp(testConfig());
 
   it('GET /api/health reports degraded when the database is not connected', async () => {
     const res = await request(app).get('/api/health');

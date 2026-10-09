@@ -53,6 +53,24 @@ No database setup is needed. If `MONGODB_URI` is empty, the API starts an **in-m
 - **Validate at the edges with Zod.** The API uses `validateBody(Schema)`, and the web app parses responses with the same schema.
 - **API errors** always have the shape `{ error: { code, message, fields? } }`.
 - **Themes:** `ThemeService` sets `data-bs-theme` and `data-nb-theme` on `<html>`. To add a theme, edit `libs/web/ui/src/lib/styles/_themes.scss` and `THEMES` in `theme.service.ts`.
+- **Forms:** use `<nb-form-field>` with `<input nbInput>` and `zodValidator(SharedSchema)`. Show API field errors with `applyServerErrors(form, error.fields)`.
+
+## Authentication
+
+| Endpoint                  | Auth   | Purpose                                   |
+| ------------------------- | ------ | ----------------------------------------- |
+| `POST /api/auth/register` | –      | Create a customer, start a session (201)  |
+| `POST /api/auth/login`    | –      | Start a session                           |
+| `POST /api/auth/refresh`  | cookie | Swap the refresh cookie for a new session |
+| `POST /api/auth/logout`   | cookie | Revoke the refresh token (204)            |
+| `GET /api/auth/me`        | Bearer | Current user                              |
+
+- **Access token:** a JWT (HS256) valid for 15 minutes. The browser keeps it **in memory only** and sends it as `Authorization: Bearer …`.
+- **Refresh token:** a random opaque string in the `nb_rt` cookie (`HttpOnly`, `SameSite=Strict`, `Path=/api/auth`, `Secure` in production), valid for 7 days. Only its SHA-256 hash is stored in MongoDB.
+- **Rotation and reuse detection:** every refresh revokes the old token and issues a new one. If a revoked token is used again, all of that user's sessions are revoked.
+- **Passwords** are hashed with Node's built-in `scrypt`. After 5 failed logins the account is locked for 15 minutes, and auth routes are rate-limited per IP.
+- **On page load**, Angular calls `/refresh` to restore the session. The interceptor refreshes and retries once on a `401`.
+- **Protecting a route:** `router.get('/x', requireAuth(secret), requireRole('admin'), handler)`. On the web side, use `canActivate: [authGuard]`.
 
 ## Deploying (Render + Atlas)
 
@@ -65,7 +83,7 @@ On the free tier the service sleeps after 15 minutes idle, so the first request 
 ## Roadmap
 
 - [x] Day 1 – Monorepo, API skeleton, DB, themed UI kit, health check, CI, Docker
-- [ ] Day 2 – Authentication (JWT + refresh cookie)
+- [x] Day 2 – Authentication (JWT + refresh cookie)
 - [ ] Day 3 – Accounts + dashboard
 - [ ] Day 4 – Transfers (transactions, ledger, idempotency)
 - [ ] Day 5 – History, statements, admin
