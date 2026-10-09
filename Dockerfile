@@ -5,7 +5,7 @@
 #   docker run -p 3333:3333 -e MONGODB_URI="mongodb+srv://..." neobank
 
 # ---- 1. Build both apps with Nx ---------------------------------------------
-FROM node:24-alpine AS build
+FROM node:25-alpine AS build
 WORKDIR /repo
 
 ENV NX_DAEMON=false \
@@ -19,7 +19,7 @@ COPY . .
 RUN npx nx run-many -t build -p api web --configuration=production
 
 # ---- 2. Small runtime image ---------------------------------------------------
-FROM node:24-alpine AS runtime
+FROM node:25-alpine AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production \
