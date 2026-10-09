@@ -4,7 +4,7 @@ services:
   - type: web
     # Becomes https://<name>.onrender.com and must be unique on Render,
     # e.g. neobank-<yourname>.
-    name: neobank
+    name: neobank-sisir
     runtime: docker
     plan: free
     region: singapore
