@@ -7,6 +7,13 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # A new Vitest major also needs the Analog plugin to support it,
+      # so those upgrades are done by hand, not by Dependabot.
+      - dependency-name: 'vitest'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@vitest/*'
+        update-types: ['version-update:semver-major']
     groups:
       # Angular (and the Analog test plugin) must move together.
       angular:
@@ -20,6 +27,9 @@ updates:
           ]
       nx:
         patterns: ['nx', '@nx/*']
+      # @vitest/ui pins the exact vitest version: bump them together.
+      vitest:
+        patterns: ['vitest', '@vitest/*']
       minor-and-patch:
         update-types: [minor, patch]
 
