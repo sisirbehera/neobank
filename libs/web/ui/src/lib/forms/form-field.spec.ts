@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { z } from 'zod';
+import * as z from 'zod/mini';
 import { FormField } from './form-field';
 import { Input } from './input';
 import { applyServerErrors, zodValidator } from './validators';

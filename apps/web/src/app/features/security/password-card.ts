@@ -22,7 +22,7 @@ import {
   zodValidator,
 } from '@neobank/web/ui';
 import { firstValueFrom } from 'rxjs';
-import { z } from 'zod';
+import * as z from 'zod/mini';
 import { toApiError } from '../../core/http/api-error';
 import { SecurityApi } from '../../core/security/security.api';
 
@@ -92,7 +92,9 @@ export class PasswordCard {
   protected readonly form = inject(FormBuilder).nonNullable.group({
     currentPassword: [
       '',
-      zodValidator(z.string().min(1, 'Current password is required')),
+      zodValidator(
+        z.string().check(z.minLength(1, 'Current password is required')),
+      ),
     ],
     newPassword: ['', zodValidator(NewPasswordSchema)],
     confirmPassword: ['', matchesNewPassword],

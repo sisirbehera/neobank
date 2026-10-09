@@ -62,6 +62,9 @@ const userSchema = new Schema<User>(
   { timestamps: true },
 );
 
+// Admin users list: newest first.
+userSchema.index({ createdAt: -1 });
+
 export const UserModel = model<User>('User', userSchema);
 
 /** The only shape of a user that ever leaves the API. */

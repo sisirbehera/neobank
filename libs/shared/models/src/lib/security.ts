@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod/mini';
 import { AuthResponseSchema, NewPasswordSchema } from './auth';
 
 // ---- Two-step verification (TOTP authenticator apps) ------------------------
@@ -6,16 +6,20 @@ import { AuthResponseSchema, NewPasswordSchema } from './auth';
 /** A 6-digit code from an authenticator app. */
 export const TotpCodeSchema = z
   .string()
-  .trim()
-  .regex(/^\d{6}$/, 'Enter the 6-digit code from your authenticator app');
+  .check(
+    z.trim(),
+    z.regex(/^\d{6}$/, 'Enter the 6-digit code from your authenticator app'),
+  );
 
 /** A 6-digit code, or a single-use backup code like "K7QF-2M9X". */
 export const MfaCodeSchema = z
   .string()
-  .trim()
-  .regex(
-    /^(\d{6}|[A-Za-z0-9]{4}-?[A-Za-z0-9]{4})$/,
-    'Enter the 6-digit code or a backup code',
+  .check(
+    z.trim(),
+    z.regex(
+      /^(\d{6}|[A-Za-z0-9]{4}-?[A-Za-z0-9]{4})$/,
+      'Enter the 6-digit code or a backup code',
+    ),
   );
 
 /** Password was right, but a second step is needed before a session starts. */
@@ -35,13 +39,15 @@ export const LoginResponseSchema = z.union([
 ]);
 export type LoginResponse = z.infer<typeof LoginResponseSchema>;
 
+const MfaTokenSchema = z.string().check(z.minLength(1));
+
 export const MfaVerifyRequestSchema = z.object({
-  mfaToken: z.string().min(1),
+  mfaToken: MfaTokenSchema,
   code: MfaCodeSchema,
 });
 export type MfaVerifyRequest = z.input<typeof MfaVerifyRequestSchema>;
 
-export const MfaTokenRequestSchema = z.object({ mfaToken: z.string().min(1) });
+export const MfaTokenRequestSchema = z.object({ mfaToken: MfaTokenSchema });
 
 export const MfaSetupResponseSchema = z.object({
   /** Base32 secret, for typing into an app that can't scan. */
@@ -54,7 +60,7 @@ export type MfaSetupResponse = z.infer<typeof MfaSetupResponseSchema>;
 
 export const MfaEnableRequestSchema = z.object({ code: TotpCodeSchema });
 export const MfaEnrollConfirmRequestSchema = z.object({
-  mfaToken: z.string().min(1),
+  mfaToken: MfaTokenSchema,
   code: TotpCodeSchema,
 });
 
@@ -65,13 +71,14 @@ export const BackupCodesResponseSchema = z.object({
 export type BackupCodesResponse = z.infer<typeof BackupCodesResponseSchema>;
 
 /** Finishing 2FA setup during login: a session plus the backup codes. */
-export const EnrollConfirmResponseSchema = AuthResponseSchema.extend(
+export const EnrollConfirmResponseSchema = z.extend(
+  AuthResponseSchema,
   BackupCodesResponseSchema.shape,
 );
 export type EnrollConfirmResponse = z.infer<typeof EnrollConfirmResponseSchema>;
 
 export const MfaDisableRequestSchema = z.object({
-  password: z.string().min(1, 'Password is required'),
+  password: z.string().check(z.minLength(1, 'Password is required')),
   code: MfaCodeSchema,
 });
 export type MfaDisableRequest = z.input<typeof MfaDisableRequestSchema>;
@@ -95,7 +102,7 @@ export type StepUpRequest = z.input<typeof StepUpRequestSchema>;
 
 export const StepUpResponseSchema = z.object({
   stepUpToken: z.string(),
-  expiresInSeconds: z.number().int(),
+  expiresInSeconds: z.int(),
 });
 export type StepUpResponse = z.infer<typeof StepUpResponseSchema>;
 
@@ -103,13 +110,17 @@ export type StepUpResponse = z.infer<typeof StepUpResponseSchema>;
 
 export const ChangePasswordRequestSchema = z
   .object({
-    currentPassword: z.string().min(1, 'Current password is required'),
+    currentPassword: z
+      .string()
+      .check(z.minLength(1, 'Current password is required')),
     newPassword: NewPasswordSchema,
   })
-  .refine((v) => v.currentPassword !== v.newPassword, {
-    message: 'The new password must be different',
-    path: ['newPassword'],
-  });
+  .check(
+    z.refine((v) => v.currentPassword !== v.newPassword, {
+      error: 'The new password must be different',
+      path: ['newPassword'],
+    }),
+  );
 export type ChangePasswordRequest = z.input<typeof ChangePasswordRequestSchema>;
 
 export const SessionDtoSchema = z.object({

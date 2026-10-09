@@ -1,3 +1,4 @@
+import * as z from 'zod/mini';
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import {
@@ -14,7 +15,7 @@ export class BeneficiariesApi {
   list(): Observable<BeneficiaryDto[]> {
     return this.http
       .get<unknown>('/api/beneficiaries')
-      .pipe(map((body) => BeneficiaryDtoSchema.array().parse(body)));
+      .pipe(map((body) => z.array(BeneficiaryDtoSchema).parse(body)));
   }
 
   add(body: AddBeneficiaryRequest): Observable<BeneficiaryDto> {

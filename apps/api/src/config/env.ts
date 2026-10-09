@@ -19,7 +19,9 @@ const EnvSchema = z
     MONGODB_URI: z.string().optional(),
     /** Folder with the built Angular app. Served by Express when it exists. */
     STATIC_DIR: z.string().default('dist/apps/web/browser'),
-    APP_VERSION: z.string().default('0.0.0'),
+    APP_VERSION: z.string().optional(),
+    /** Set by Render: the deployed git commit (shown by /api/health). */
+    RENDER_GIT_COMMIT: z.string().optional(),
     /** Signs access tokens (JWT, HS256). Long random string in production. */
     JWT_ACCESS_SECRET: z.string().optional(),
     /** Encrypts 2FA secrets stored in MongoDB. Long random string in production. */
@@ -75,7 +77,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
 
 export function toAppConfig(env: Env): AppConfig {
   return {
-    version: env.APP_VERSION,
+    version: env.APP_VERSION ?? env.RENDER_GIT_COMMIT?.slice(0, 7) ?? '0.0.0',
     staticDir: env.STATIC_DIR,
     auth: {
       accessTokenSecret: env.JWT_ACCESS_SECRET || DEV_ACCESS_SECRET,

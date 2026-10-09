@@ -36,8 +36,27 @@ describe('AuthStore', () => {
     expect(store.user()?.name).toBe('Asha Rao');
   });
 
-  it('becomes anonymous when there is no session to restore', async () => {
+  it('skips the refresh call entirely without the session hint cookie', async () => {
+    await store.restoreSession();
+
+    http.expectNone('/api/auth/refresh');
+    expect(store.status()).toBe('anonymous');
+  });
+
+  it('restores the session when the hint cookie is present', async () => {
+    document.cookie = 'nb_session=1';
     const done = store.restoreSession();
+    http.expectOne('/api/auth/refresh').flush(session());
+    await done;
+
+    expect(store.isAuthenticated()).toBe(true);
+    document.cookie = 'nb_session=; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+  });
+
+  it('becomes anonymous when the cookie no longer works', async () => {
+    document.cookie = 'nb_session=1';
+    const done = store.restoreSession();
+    document.cookie = 'nb_session=; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     http
       .expectOne('/api/auth/refresh')
       .flush(

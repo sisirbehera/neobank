@@ -59,10 +59,29 @@ describe('auth API', () => {
       });
       expect(res.body.user.passwordHash).toBeUndefined();
 
-      const setCookie = String(res.headers['set-cookie']);
-      expect(setCookie).toMatch(/HttpOnly/);
-      expect(setCookie).toMatch(/SameSite=Strict/);
-      expect(setCookie).toMatch(/Path=\/api\/auth/);
+      const cookies = ([] as string[]).concat(res.headers['set-cookie'] ?? []);
+      const refresh = cookies.find((c) => c.startsWith('nb_rt=')) ?? '';
+      expect(refresh).toMatch(/HttpOnly/);
+      expect(refresh).toMatch(/SameSite=Strict/);
+      expect(refresh).toMatch(/Path=\/api\/auth/);
+
+      // The hint cookie is readable by JS (no secret in it), for the whole site.
+      const hint = cookies.find((c) => c.startsWith('nb_session=')) ?? '';
+      expect(hint).toMatch(/^nb_session=1;/);
+      expect(hint).not.toMatch(/HttpOnly/);
+      expect(hint).toMatch(/Path=\//);
+    });
+
+    it('clears both cookies on logout', async () => {
+      const cookie = refreshCookie(await register());
+
+      const res = await request(app)
+        .post('/api/auth/logout')
+        .set('Cookie', cookie);
+
+      const cleared = String(res.headers['set-cookie']);
+      expect(cleared).toMatch(/nb_rt=;/);
+      expect(cleared).toMatch(/nb_session=;/);
     });
 
     it('stores a hashed password, never the plain text', async () => {

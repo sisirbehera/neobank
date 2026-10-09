@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod/mini';
 
 /** Shape of every error response returned by the API. */
 export const ApiErrorSchema = z.object({
@@ -6,9 +6,9 @@ export const ApiErrorSchema = z.object({
     code: z.string(),
     message: z.string(),
     /** Field-level validation messages, keyed by field path. */
-    fields: z.record(z.string(), z.array(z.string())).optional(),
+    fields: z.optional(z.record(z.string(), z.array(z.string()))),
     /** Extra machine-readable details, e.g. { action } for STEP_UP_REQUIRED. */
-    meta: z.record(z.string(), z.string()).optional(),
+    meta: z.optional(z.record(z.string(), z.string())),
   }),
 });
 

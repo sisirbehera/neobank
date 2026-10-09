@@ -25,6 +25,7 @@ test('2FA: set up, sign in with a backup code, step-up for a new payee, password
     await page.locator('.font-monospace').first().innerText()
   ).trim();
   await page.getByRole('button', { name: 'Log out' }).click();
+  await expect(page).toHaveURL(/\/login$/); // logout finished
 
   // Asha turns on two-step verification.
   const email = `asha-2fa-${stamp}@example.com`;
@@ -48,6 +49,7 @@ test('2FA: set up, sign in with a backup code, step-up for a new payee, password
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page.getByText('On', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Log out' }).click();
+  await expect(page).toHaveURL(/\/login$/); // logout finished
 
   // Signing in now asks for a second step. A backup code works (once).
   await page.getByLabel('Email').fill(email);

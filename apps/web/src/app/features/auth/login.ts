@@ -58,26 +58,6 @@ type Step = 'password' | 'code' | 'enroll' | 'backup-codes';
 
           @switch (step()) {
             @case ('password') {
-              @if (status.health()?.demoMode) {
-                <div
-                  class="alert alert-info small d-flex flex-wrap gap-2 align-items-center"
-                >
-                  <span>
-                    Just looking? Use the demo account
-                    <strong>{{ demo.email }}</strong> /
-                    <strong>{{ demo.password }}</strong
-                    >.
-                  </span>
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-outline-primary"
-                    (click)="useDemo()"
-                  >
-                    Fill in
-                  </button>
-                </div>
-              }
-
               <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
                 <nb-form-field label="Email">
                   <input
@@ -110,6 +90,28 @@ type Step = 'password' | 'code' | 'enroll' | 'backup-codes';
               <p class="mt-3 mb-0 text-center small">
                 New to NeoBank? <a routerLink="/register">Open an account</a>
               </p>
+
+              <!-- Below the form: it appears once /api/health answers, and
+                   showing it above would push the form down (layout shift). -->
+              @if (status.health()?.demoMode) {
+                <div
+                  class="alert alert-info small mt-3 mb-0 d-flex flex-wrap gap-2 align-items-center"
+                >
+                  <span>
+                    Just looking? Use the demo account
+                    <strong>{{ demo.email }}</strong> /
+                    <strong>{{ demo.password }}</strong
+                    >.
+                  </span>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-primary"
+                    (click)="useDemo()"
+                  >
+                    Fill in
+                  </button>
+                </div>
+              }
             }
 
             @case ('code') {

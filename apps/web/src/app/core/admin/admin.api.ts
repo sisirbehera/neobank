@@ -1,3 +1,4 @@
+import * as z from 'zod/mini';
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import {
@@ -34,7 +35,7 @@ export class AdminApi {
   audit(): Observable<AuditEntryDto[]> {
     return this.http
       .get<unknown>('/api/admin/audit')
-      .pipe(map((b) => AuditEntryDtoSchema.array().parse(b)));
+      .pipe(map((b) => z.array(AuditEntryDtoSchema).parse(b)));
   }
 
   users(query: AdminUsersQuery): Observable<Page<AdminUserRow>> {

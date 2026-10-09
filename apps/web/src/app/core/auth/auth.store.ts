@@ -112,6 +112,13 @@ export const AuthStore = signalStore(
 
       /** Runs once at startup: the refresh cookie (if any) brings the session back. */
       async restoreSession(): Promise<void> {
+        // The refresh cookie is httpOnly (invisible to JS); the API also sets
+        // a secret-free "nb_session" hint. No hint → certainly signed out:
+        // skip the round trip, render sooner, and avoid a 401 in the console.
+        if (!hasSessionHint()) {
+          clearSession();
+          return;
+        }
         try {
           setSession(await firstValueFrom(api.refresh()));
         } catch {
@@ -138,3 +145,10 @@ export const AuthStore = signalStore(
     };
   }),
 );
+
+function hasSessionHint(): boolean {
+  return (
+    typeof document !== 'undefined' &&
+    document.cookie.split('; ').some((c) => c.startsWith('nb_session='))
+  );
+}

@@ -2,15 +2,14 @@ import {
   HttpErrorResponse,
   type HttpInterceptorFn,
 } from '@angular/common/http';
-import { inject } from '@angular/core';
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { inject, Injector } from '@angular/core';
 import {
   ApiErrorSchema,
   STEP_UP_HEADER,
   StepUpActionSchema,
+  type StepUpAction,
 } from '@neobank/shared/models';
 import { catchError, from, switchMap, throwError } from 'rxjs';
-import { StepUpDialog } from './step-up-dialog';
 
 /**
  * Risky actions answer `403 STEP_UP_REQUIRED` (meta.action says which).
@@ -21,17 +20,14 @@ import { StepUpDialog } from './step-up-dialog';
  */
 export const stepUpInterceptor: HttpInterceptorFn = (req, next) => {
   if (req.url === '/api/security/step-up') return next(req);
-  const modal = inject(NgbModal);
+  const injector = inject(Injector);
 
   return next(req).pipe(
     catchError((err: unknown) => {
       const action = stepUpAction(err);
       if (!action) return throwError(() => err);
 
-      const ref = modal.open(StepUpDialog, { centered: true });
-      (ref.componentInstance as StepUpDialog).setup(action);
-
-      return from(ref.result as Promise<string>).pipe(
+      return from(askForStepUpToken(injector, action)).pipe(
         catchError(() =>
           // Dialog dismissed: fail with a clear, non-scary message.
           throwError(
@@ -55,6 +51,18 @@ export const stepUpInterceptor: HttpInterceptorFn = (req, next) => {
     }),
   );
 };
+
+/**
+ * The dialog (and the modal + forms code it needs) is loaded only when a
+ * step-up actually happens, so it isn't part of the app's startup download.
+ */
+async function askForStepUpToken(
+  injector: Injector,
+  action: StepUpAction,
+): Promise<string> {
+  const { openStepUpDialog } = await import('./step-up-dialog');
+  return openStepUpDialog(injector, action);
+}
 
 function stepUpAction(err: unknown) {
   if (!(err instanceof HttpErrorResponse) || err.status !== 403) return null;

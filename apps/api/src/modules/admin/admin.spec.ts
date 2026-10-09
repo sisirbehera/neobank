@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import request from 'supertest';
 import {
   AdminStatsSchema,
@@ -94,7 +95,7 @@ describe('admin API', () => {
       expect(deposit.status).toBe(409);
 
       const audit = await request(app).get('/api/admin/audit').set(admin);
-      const [entry] = AuditEntryDtoSchema.array().parse(audit.body);
+      const [entry] = z.array(AuditEntryDtoSchema).parse(audit.body);
       expect(entry).toMatchObject({
         adminName: 'Admin User',
         action: 'ACCOUNT_FROZEN',

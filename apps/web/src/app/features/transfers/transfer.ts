@@ -34,7 +34,7 @@ import {
   zodValidator,
 } from '@neobank/web/ui';
 import { firstValueFrom } from 'rxjs';
-import { z } from 'zod';
+import * as z from 'zod/mini';
 import { AccountsStore } from '../../core/accounts/accounts.store';
 import { BeneficiariesStore } from '../../core/beneficiaries/beneficiaries.store';
 import { toApiError } from '../../core/http/api-error';
@@ -279,7 +279,10 @@ export class Transfer {
       '',
       zodValidator(TransferRequestSchema.shape.fromAccountId),
     ],
-    toAccountNumber: ['', zodValidator(z.string().min(1, 'Choose who to pay'))],
+    toAccountNumber: [
+      '',
+      zodValidator(z.string().check(z.minLength(1, 'Choose who to pay'))),
+    ],
     amount: [
       '',
       [

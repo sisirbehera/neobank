@@ -41,6 +41,10 @@ const transactionSchema = new Schema<Transaction>(
   { timestamps: { createdAt: true, updatedAt: false } },
 );
 
+// Admin list: newest first, optionally by type.
+transactionSchema.index({ createdAt: -1, _id: -1 });
+transactionSchema.index({ type: 1, createdAt: -1 });
+
 export const TransactionModel = model<Transaction>(
   'Transaction',
   transactionSchema,

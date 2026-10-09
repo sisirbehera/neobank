@@ -1,9 +1,10 @@
-import { z } from 'zod';
+import * as z from 'zod/mini';
 import { isValidAccountNumber } from '@neobank/shared/utils';
 import {
   AccountDtoSchema,
   DescriptionSchema,
   LedgerEntryDtoSchema,
+  NicknameSchema,
 } from './accounts';
 import { NameSchema } from './auth';
 import { MovementAmountSchema } from './money';
@@ -20,35 +21,33 @@ export const MAX_BENEFICIARIES_PER_USER = 20;
 export const IDEMPOTENCY_HEADER = 'Idempotency-Key';
 export const IdempotencyKeySchema = z
   .string()
-  .regex(
-    /^[A-Za-z0-9_-]{8,100}$/,
-    'Idempotency-Key must be 8–100 letters, digits, - or _',
+  .check(
+    z.regex(
+      /^[A-Za-z0-9_-]{8,100}$/,
+      'Idempotency-Key must be 8–100 letters, digits, - or _',
+    ),
   );
 
 /** Accepts "nb12 3456 7897" style input; outputs "NB1234567897" if the check digit is right. */
-export const AccountNumberInputSchema = z
-  .string()
-  .transform((value) => value.replace(/\s/g, '').toUpperCase())
-  .pipe(
-    z
-      .string()
-      .min(1, 'Account number is required')
-      .refine(
-        isValidAccountNumber,
-        'This account number is not valid. Check it for typos.',
-      ),
-  );
+export const AccountNumberInputSchema = z.pipe(
+  z.pipe(
+    z.string(),
+    z.transform((value: string) => value.replace(/\s/g, '').toUpperCase()),
+  ),
+  z.string().check(
+    z.minLength(1, 'Account number is required'),
+    z.refine(isValidAccountNumber, {
+      error: 'This account number is not valid. Check it for typos.',
+    }),
+  ),
+);
 
 // ---- Beneficiaries ----------------------------------------------------------
 
 export const AddBeneficiaryRequestSchema = z.object({
   name: NameSchema,
   accountNumber: AccountNumberInputSchema,
-  nickname: z
-    .string()
-    .trim()
-    .max(30, 'Nickname must be at most 30 characters')
-    .default(''),
+  nickname: z._default(NicknameSchema, ''),
 });
 export type AddBeneficiaryRequest = z.input<typeof AddBeneficiaryRequestSchema>;
 
@@ -64,11 +63,13 @@ export type BeneficiaryDto = z.infer<typeof BeneficiaryDtoSchema>;
 // ---- Transfers --------------------------------------------------------------
 
 export const TransferRequestSchema = z.object({
-  fromAccountId: z.string().min(1, 'Choose the account to pay from'),
+  fromAccountId: z
+    .string()
+    .check(z.minLength(1, 'Choose the account to pay from')),
   /** One of your own accounts, or a saved beneficiary's account. */
   toAccountNumber: AccountNumberInputSchema,
   amountPaise: MovementAmountSchema,
-  description: DescriptionSchema.default(''),
+  description: z._default(DescriptionSchema, ''),
 });
 export type TransferRequest = z.input<typeof TransferRequestSchema>;
 

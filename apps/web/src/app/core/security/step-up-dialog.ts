@@ -2,10 +2,11 @@ import {
   ChangeDetectionStrategy,
   Component,
   inject,
+  type Injector,
   signal,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgbActiveModal, NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { MfaCodeSchema, type StepUpAction } from '@neobank/shared/models';
 import { Button, FormField, Input, zodValidator } from '@neobank/web/ui';
 import { firstValueFrom } from 'rxjs';
@@ -101,4 +102,18 @@ export class StepUpDialog {
       this.pending.set(false);
     }
   }
+}
+
+/**
+ * Opens the dialog and resolves with a step-up token (rejects if dismissed).
+ * Lives in this lazily loaded file so the modal and forms code are only
+ * downloaded when a step-up actually happens.
+ */
+export function openStepUpDialog(
+  injector: Injector,
+  action: StepUpAction,
+): Promise<string> {
+  const ref = injector.get(NgbModal).open(StepUpDialog, { centered: true });
+  (ref.componentInstance as StepUpDialog).setup(action);
+  return ref.result;
 }

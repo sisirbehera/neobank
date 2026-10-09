@@ -1,8 +1,13 @@
 import type { Request, RequestHandler } from 'express';
 import { z } from 'zod';
+import type { $ZodType, output } from 'zod/v4/core';
 import { HttpError } from '../lib/http-error';
 
-function validationError(error: z.ZodError): HttpError {
+// The shared request schemas are written with `zod/mini` (small in the
+// browser); the API uses full `zod`. Both build on Zod's core, so these
+// helpers accept any core schema ($ZodType) and validate with z.safeParse.
+
+function validationError(error: z.core.$ZodError): HttpError {
   const { fieldErrors } = z.flattenError(error);
   return HttpError.badRequest(
     'Validation failed',
@@ -14,9 +19,9 @@ function validationError(error: z.ZodError): HttpError {
  * Validates `req.body` against a Zod schema from @neobank/shared/models
  * and replaces it with the parsed (typed, trimmed, defaulted) value.
  */
-export function validateBody(schema: z.ZodType): RequestHandler {
+export function validateBody(schema: $ZodType): RequestHandler {
   return (req, _res, next) => {
-    const result = schema.safeParse(req.body);
+    const result = z.safeParse(schema, req.body);
     if (!result.success) return next(validationError(result.error));
     req.body = result.data;
     next();
@@ -27,11 +32,11 @@ export function validateBody(schema: z.ZodType): RequestHandler {
  * Parses the query string with a Zod schema. (Express 5 makes `req.query`
  * read-only, so the parsed value is returned instead of stored.)
  */
-export function parseQuery<T extends z.ZodType>(
+export function parseQuery<T extends $ZodType>(
   schema: T,
   req: Request,
-): z.output<T> {
-  const result = schema.safeParse(req.query);
+): output<T> {
+  const result = z.safeParse(schema, req.query);
   if (!result.success) throw validationError(result.error);
-  return result.data;
+  return result.data as output<T>;
 }

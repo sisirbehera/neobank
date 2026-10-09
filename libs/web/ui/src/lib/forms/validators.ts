@@ -4,16 +4,18 @@ import type {
   ValidationErrors,
   ValidatorFn,
 } from '@angular/forms';
-import type { z } from 'zod';
+import type { $ZodType } from 'zod/v4/core';
+import { safeParse } from 'zod/mini';
 
 /**
  * Turns a Zod schema into an Angular validator, so form controls use the
  * exact rules the API enforces:
  *   email: ['', zodValidator(EmailSchema)]
+ * Accepts any Zod 4 schema (zod or zod/mini).
  */
-export function zodValidator(schema: z.ZodType): ValidatorFn {
+export function zodValidator(schema: $ZodType): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
-    const result = schema.safeParse(control.value);
+    const result = safeParse(schema, control.value);
     return result.success ? null : { zod: result.error.issues[0].message };
   };
 }

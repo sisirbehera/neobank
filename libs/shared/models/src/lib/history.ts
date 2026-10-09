@@ -1,7 +1,6 @@
-import { z } from 'zod';
+import * as z from 'zod/mini';
 import {
   AccountDtoSchema,
-  AccountStatusSchema,
   LedgerDirectionSchema,
   LedgerEntryDtoSchema,
   TransactionTypeSchema,
@@ -10,19 +9,29 @@ import { UserRoleSchema } from './auth';
 import { PaiseSchema } from './money';
 
 /** Query-string values arrive as strings; treat "" like "not given". */
-const optional = <T extends z.ZodType>(schema: T) =>
-  z.preprocess((v) => (v === '' ? undefined : v), schema.optional());
+const optional = <T extends z.ZodMiniType>(schema: T) =>
+  z.pipe(
+    z.transform((v: unknown) => (v === '' ? undefined : v)),
+    z.optional(schema),
+  );
 
-const PageSchema = z.coerce.number().int().min(1).default(1);
-const PageSizeSchema = z.coerce.number().int().min(1).max(100).default(20);
+/** "?page=2" → 2, with a default and bounds. */
+const queryInt = (fallback: number, max: number) =>
+  z._default(
+    z.pipe(z.coerce.number(), z.int().check(z.minimum(1), z.maximum(max))),
+    fallback,
+  );
+
+const PageSchema = queryInt(1, 100_000);
+const PageSizeSchema = queryInt(20, 100);
 
 /** A page of results plus the total, for pagination controls. */
-export const pageOf = <T extends z.ZodType>(item: T) =>
+export const pageOf = <T extends z.ZodMiniType>(item: T) =>
   z.object({
     items: z.array(item),
-    page: z.number().int(),
-    pageSize: z.number().int(),
-    total: z.number().int(),
+    page: z.int(),
+    pageSize: z.int(),
+    total: z.int(),
   });
 
 export interface Page<T> {
@@ -31,6 +40,8 @@ export interface Page<T> {
   pageSize: number;
   total: number;
 }
+
+const SearchSchema = z.string().check(z.trim(), z.maxLength(50));
 
 // ---- Transaction history (customer) -----------------------------------------
 
@@ -43,14 +54,16 @@ export const HistoryQuerySchema = z
     from: optional(z.iso.date('Use the format YYYY-MM-DD')),
     to: optional(z.iso.date('Use the format YYYY-MM-DD')),
     /** Searches description and counterparty. */
-    q: optional(z.string().trim().max(50)),
+    q: optional(SearchSchema),
     page: PageSchema,
     pageSize: PageSizeSchema,
   })
-  .refine((q) => !q.from || !q.to || q.from <= q.to, {
-    message: '"From" must be on or before "To"',
-    path: ['to'],
-  });
+  .check(
+    z.refine(
+      (q) => !q.from || !q.to || (q.from as string) <= (q.to as string),
+      { error: '"From" must be on or before "To"', path: ['to'] },
+    ),
+  );
 export type HistoryQuery = z.input<typeof HistoryQuerySchema>;
 
 export const HistoryPageSchema = pageOf(LedgerEntryDtoSchema);
@@ -59,7 +72,7 @@ export type HistoryPage = z.infer<typeof HistoryPageSchema>;
 /** Money in and out per calendar month (IST); own-account transfers excluded. */
 export const MonthlySummarySchema = z.array(
   z.object({
-    month: z.string().regex(/^\d{4}-\d{2}$/),
+    month: z.string().check(z.regex(/^\d{4}-\d{2}$/)),
     inPaise: PaiseSchema,
     outPaise: PaiseSchema,
   }),
@@ -69,18 +82,18 @@ export type MonthlySummary = z.infer<typeof MonthlySummarySchema>;
 // ---- Admin ------------------------------------------------------------------
 
 export const AdminStatsSchema = z.object({
-  users: z.number().int(),
-  accounts: z.number().int(),
-  frozenAccounts: z.number().int(),
+  users: z.int(),
+  accounts: z.int(),
+  frozenAccounts: z.int(),
   /** Sum of all customer balances, in paise. */
   totalBalance: PaiseSchema,
-  transactionsToday: z.number().int(),
+  transactionsToday: z.int(),
   volumeTodayPaise: PaiseSchema,
 });
 export type AdminStats = z.infer<typeof AdminStatsSchema>;
 
 export const AdminUsersQuerySchema = z.object({
-  q: optional(z.string().trim().max(50)),
+  q: optional(SearchSchema),
   page: PageSchema,
   pageSize: PageSizeSchema,
 });
@@ -92,25 +105,28 @@ export const AdminUserRowSchema = z.object({
   email: z.string(),
   role: UserRoleSchema,
   createdAt: z.iso.datetime(),
-  accountCount: z.number().int(),
+  accountCount: z.int(),
   totalBalance: PaiseSchema,
 });
 export type AdminUserRow = z.infer<typeof AdminUserRowSchema>;
 export const AdminUsersPageSchema = pageOf(AdminUserRowSchema);
 
 export const AdminUserDetailSchema = z.object({
-  user: AdminUserRowSchema.omit({ accountCount: true, totalBalance: true }),
+  user: z.omit(AdminUserRowSchema, { accountCount: true, totalBalance: true }),
   accounts: z.array(AccountDtoSchema),
 });
 export type AdminUserDetail = z.infer<typeof AdminUserDetailSchema>;
 
 export const UpdateAccountStatusRequestSchema = z.object({
-  status: AccountStatusSchema.exclude(['CLOSED']),
+  // Admins can freeze and unfreeze; closing accounts isn't offered.
+  status: z.enum(['ACTIVE', 'FROZEN']),
   reason: z
     .string()
-    .trim()
-    .min(3, 'Give a short reason (at least 3 characters)')
-    .max(200, 'Reason must be at most 200 characters'),
+    .check(
+      z.trim(),
+      z.minLength(3, 'Give a short reason (at least 3 characters)'),
+      z.maxLength(200, 'Reason must be at most 200 characters'),
+    ),
 });
 export type UpdateAccountStatusRequest = z.input<
   typeof UpdateAccountStatusRequestSchema
@@ -130,8 +146,8 @@ export const AdminTransactionRowSchema = z.object({
   type: TransactionTypeSchema,
   amount: PaiseSchema,
   description: z.string(),
-  fromAccountNumber: z.string().nullable(),
-  toAccountNumber: z.string().nullable(),
+  fromAccountNumber: z.nullable(z.string()),
+  toAccountNumber: z.nullable(z.string()),
   initiatedBy: z.string(),
   isExternal: z.boolean(),
   createdAt: z.iso.datetime(),

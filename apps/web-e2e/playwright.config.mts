@@ -32,7 +32,10 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
   webServer: {
     command: 'npx nx run web:serve',
-    url: 'http://localhost:4200',
+    // Through the dev-server proxy: 200 only once Angular, the API and the
+    // database are all up (the API starts slower than the dev server).
+    url: 'http://localhost:4200/api/health',
+    timeout: 180_000,
     reuseExistingServer: true,
     cwd: workspaceRoot,
     // Every test logs in from the same IP; don't let the login rate limit

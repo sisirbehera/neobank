@@ -2,6 +2,8 @@
 # In Render: New + → Blueprint → pick this repo. You'll be asked for MONGODB_URI.
 services:
   - type: web
+    # Becomes https://<name>.onrender.com and must be unique on Render,
+    # e.g. neobank-<yourname>.
     name: neobank
     runtime: docker
     plan: free

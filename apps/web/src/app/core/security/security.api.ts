@@ -1,3 +1,4 @@
+import * as z from 'zod/mini';
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import {
@@ -54,7 +55,7 @@ export class SecurityApi {
   sessions(): Observable<SessionDto[]> {
     return this.http
       .get<unknown>('/api/security/sessions')
-      .pipe(map((b) => SessionDtoSchema.array().parse(b)));
+      .pipe(map((b) => z.array(SessionDtoSchema).parse(b)));
   }
 
   revokeSession(id: string): Observable<void> {

@@ -10,7 +10,7 @@ import {
   RouterLinkActive,
   RouterOutlet,
 } from '@angular/router';
-import { ThemeSwitcher } from '@neobank/web/ui';
+import { ThemeSwitcher } from '@neobank/web/ui/theme';
 import { AuthStore } from './core/auth/auth.store';
 
 @Component({

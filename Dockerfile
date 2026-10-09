@@ -27,12 +27,16 @@ ENV NODE_ENV=production \
     PORT=3333 \
     STATIC_DIR=/app/public
 
-# Nx generates a package.json + lockfile with only the API's runtime deps.
+# Nx generates a package.json + lockfile with only the API's runtime deps
+# (11 packages). --ignore-scripts: no package install scripts run in production.
 COPY --from=build /repo/apps/api/dist ./
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
 COPY --from=build /repo/dist/apps/web/browser ./public
 
+# Runs as the unprivileged "node" user, never root.
 USER node
 EXPOSE 3333
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s \
+  CMD wget -qO- "http://127.0.0.1:${PORT}/api/health" > /dev/null || exit 1
 CMD ["node", "main.js"]

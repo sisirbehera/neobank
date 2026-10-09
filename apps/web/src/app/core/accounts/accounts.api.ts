@@ -1,3 +1,4 @@
+import * as z from 'zod/mini';
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import {
@@ -20,7 +21,7 @@ export class AccountsApi {
   list(): Observable<AccountDto[]> {
     return this.http
       .get<unknown>('/api/accounts')
-      .pipe(map((body) => AccountDtoSchema.array().parse(body)));
+      .pipe(map((body) => z.array(AccountDtoSchema).parse(body)));
   }
 
   open(body: OpenAccountRequest): Observable<AccountDto> {
@@ -44,7 +45,7 @@ export class AccountsApi {
       : '/api/accounts/activity';
     return this.http
       .get<unknown>(url, { params: { limit } })
-      .pipe(map((body) => LedgerEntryDtoSchema.array().parse(body)));
+      .pipe(map((body) => z.array(LedgerEntryDtoSchema).parse(body)));
   }
 
   private move(

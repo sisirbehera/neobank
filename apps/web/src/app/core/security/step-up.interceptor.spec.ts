@@ -15,7 +15,8 @@ describe('stepUpInterceptor', () => {
   let http: HttpClient;
   let backend: HttpTestingController;
   const setup = vi.fn();
-  let dialogResult: Promise<string>;
+  /** What the (mocked) dialog resolves with; created when it opens. */
+  let dialogResult: () => Promise<string>;
 
   beforeEach(() => {
     setup.mockClear();
@@ -28,7 +29,7 @@ describe('stepUpInterceptor', () => {
           useValue: {
             open: () => ({
               componentInstance: { setup },
-              result: dialogResult,
+              result: dialogResult(),
             }),
           },
         },
@@ -49,7 +50,7 @@ describe('stepUpInterceptor', () => {
   });
 
   it('asks for a code and retries the same request with the step-up token', async () => {
-    dialogResult = Promise.resolve('step-up-token');
+    dialogResult = () => Promise.resolve('step-up-token');
     let result: unknown;
 
     http
@@ -66,10 +67,11 @@ describe('stepUpInterceptor', () => {
         status: 403,
         statusText: 'Forbidden',
       });
+    // The dialog is lazy-loaded: wait until the retried request is sent.
+    const retry = await vi.waitFor(() =>
+      backend.expectOne('/api/beneficiaries'),
+    );
     expect(setup).toHaveBeenCalledWith('ADD_BENEFICIARY');
-
-    await Promise.resolve(); // let the dialog promise resolve
-    const retry = backend.expectOne('/api/beneficiaries');
     expect(retry.request.headers.get('X-Step-Up-Token')).toBe('step-up-token');
     expect(retry.request.headers.get('Idempotency-Key')).toBe('k1');
     expect(retry.request.body).toEqual({ name: 'Ravi' });
@@ -79,7 +81,7 @@ describe('stepUpInterceptor', () => {
   });
 
   it('reports a cancelled dialog without retrying', async () => {
-    dialogResult = Promise.reject('dismissed');
+    dialogResult = () => Promise.reject('dismissed');
     let error: { error?: { error?: { code?: string } } } | undefined;
 
     http.post('/api/transfers', {}).subscribe({ error: (e) => (error = e) });
@@ -89,9 +91,9 @@ describe('stepUpInterceptor', () => {
         status: 403,
         statusText: 'Forbidden',
       });
-    await new Promise((r) => setTimeout(r));
-
-    expect(error?.error?.error?.code).toBe('STEP_UP_CANCELLED');
+    await vi.waitFor(() =>
+      expect(error?.error?.error?.code).toBe('STEP_UP_CANCELLED'),
+    );
   });
 
   it('leaves other 403s alone', () => {

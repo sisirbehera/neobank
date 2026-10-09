@@ -10,11 +10,14 @@ permissions:
   actions: read
   contents: read
 
+env:
+  NX_NO_CLOUD: true
+  NX_DAEMON: false
+
 jobs:
-  main:
+  checks:
+    name: Lint, typecheck, unit tests, build
     runs-on: ubuntu-latest
-    env:
-      NX_NO_CLOUD: true
     steps:
       - uses: actions/checkout@v5
         with:
@@ -24,12 +27,89 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 24
-          cache: 'npm'
+          cache: npm
+
+      # The API tests start an in-memory MongoDB; keep its binary between runs.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: mongodb-binaries-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
       - run: npm ci
+
+      # Fail on known high/critical vulnerabilities in what ships to production.
+      # (Dev tooling advisories are handled by Dependabot pull requests.)
+      - run: npm audit --omit=dev --audit-level=high
 
       # Sets NX_BASE / NX_HEAD so "affected" only runs what changed.
       - uses: nrwl/nx-set-shas@v4
 
       - run: npx nx format:check
-      - run: npx nx affected -t lint test build typecheck
+      - run: npx nx affected -t lint typecheck test build
+
+  e2e:
+    name: Browser tests (Playwright)
+    runs-on: ubuntu-latest
+    needs: checks
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: mongodb-binaries-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx nx e2e web-e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: dist/.playwright
+          retention-days: 7
+
+  docker:
+    name: Production image + smoke test
+    runs-on: ubuntu-latest
+    needs: checks
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Build the image Render will run
+        run: docker build -t neobank:ci .
+
+      - name: Start MongoDB (single-node replica set, like Atlas)
+        run: |
+          docker run -d --name mongo --network host mongo:8 --replSet rs0 --bind_ip_all
+          for i in $(seq 1 30); do
+            docker exec mongo mongosh --quiet --eval "try { rs.status().ok } catch (e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'localhost:27017'}]}).ok }" && break
+            sleep 2
+          done
+
+      - name: Start the app in production mode
+        run: |
+          docker run -d --name neobank --network host \
+            -e NODE_ENV=production \
+            -e PORT=3333 \
+            -e MONGODB_URI="mongodb://localhost:27017/neobank?replicaSet=rs0&directConnection=true" \
+            -e JWT_ACCESS_SECRET="$(openssl rand -base64 48)" \
+            -e MFA_ENCRYPTION_KEY="$(openssl rand -base64 48)" \
+            -e SEED_DEMO_DATA=true \
+            neobank:ci
+
+      - run: node tools/smoke.mjs http://localhost:3333
+
+      - name: Container logs
+        if: always()
+        run: docker logs neobank

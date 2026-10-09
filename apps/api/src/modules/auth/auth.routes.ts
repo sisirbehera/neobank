@@ -21,6 +21,12 @@ import { validateBody } from '../../middleware/validate';
 import { AuthService, type ClientMeta, type Session } from './auth.service';
 
 export const REFRESH_COOKIE = 'nb_rt';
+/**
+ * Companion cookie with no secret in it, readable by JavaScript: "a session
+ * probably exists". Signed-out visitors don't have it, so the app skips the
+ * /refresh round trip (and its 401) on their first page load.
+ */
+export const SESSION_HINT_COOKIE = 'nb_session';
 
 export function authRoutes(config: AuthConfig): Router {
   const router = Router();
@@ -59,11 +65,26 @@ export function authRoutes(config: AuthConfig): Router {
     ip: req.ip,
   });
 
+  const hintOptions: CookieOptions = {
+    httpOnly: false,
+    secure: config.secureCookies,
+    sameSite: 'strict',
+    path: '/',
+  };
+
+  const setSessionCookies = (res: Response, refreshToken: string) => {
+    const maxAge = config.refreshTokenTtlDays * 86_400_000;
+    res.cookie(REFRESH_COOKIE, refreshToken, { ...cookieOptions, maxAge });
+    res.cookie(SESSION_HINT_COOKIE, '1', { ...hintOptions, maxAge });
+  };
+
+  const clearSessionCookies = (res: Response) => {
+    res.clearCookie(REFRESH_COOKIE, cookieOptions);
+    res.clearCookie(SESSION_HINT_COOKIE, hintOptions);
+  };
+
   const sendSession = (res: Response, session: Session, status = 200) => {
-    res.cookie(REFRESH_COOKIE, session.refreshToken, {
-      ...cookieOptions,
-      maxAge: config.refreshTokenTtlDays * 86_400_000,
-    });
+    setSessionCookies(res, session.refreshToken);
     const body: AuthResponse = {
       accessToken: session.accessToken,
       user: session.user,
@@ -125,10 +146,7 @@ export function authRoutes(config: AuthConfig): Router {
         req.body.code,
         meta(req),
       );
-      res.cookie(REFRESH_COOKIE, session.refreshToken, {
-        ...cookieOptions,
-        maxAge: config.refreshTokenTtlDays * 86_400_000,
-      });
+      setSessionCookies(res, session.refreshToken);
       const body: EnrollConfirmResponse = {
         accessToken: session.accessToken,
         user: session.user,
@@ -145,14 +163,14 @@ export function authRoutes(config: AuthConfig): Router {
         await auth.refresh(req.cookies[REFRESH_COOKIE], meta(req)),
       );
     } catch (err) {
-      res.clearCookie(REFRESH_COOKIE, cookieOptions);
+      clearSessionCookies(res);
       throw err;
     }
   });
 
   router.post('/logout', async (req, res) => {
     await auth.logout(req.cookies[REFRESH_COOKIE]);
-    res.clearCookie(REFRESH_COOKIE, cookieOptions);
+    clearSessionCookies(res);
     res.status(204).end();
   });
 

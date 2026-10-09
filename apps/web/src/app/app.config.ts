@@ -9,8 +9,13 @@ import {
   withFetch,
   withInterceptors,
 } from '@angular/common/http';
-import { provideRouter, withComponentInputBinding } from '@angular/router';
-import { ThemeService } from '@neobank/web/ui';
+import {
+  PreloadAllModules,
+  provideRouter,
+  withComponentInputBinding,
+  withPreloading,
+} from '@angular/router';
+import { ThemeService } from '@neobank/web/ui/theme';
 import { appRoutes } from './app.routes';
 import { authInterceptor } from './core/auth/auth.interceptor';
 import { AuthStore } from './core/auth/auth.store';
@@ -19,7 +24,13 @@ import { stepUpInterceptor } from './core/security/step-up.interceptor';
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(appRoutes, withComponentInputBinding()),
+    // After the first page renders, quietly download the other pages so
+    // navigating feels instant (they are small: 1–4 KB each, gzipped).
+    provideRouter(
+      appRoutes,
+      withComponentInputBinding(),
+      withPreloading(PreloadAllModules),
+    ),
     // Order matters: auth adds the token and handles 401s; step-up retries
     // 403 STEP_UP_REQUIRED (the retry still carries the token).
     provideHttpClient(

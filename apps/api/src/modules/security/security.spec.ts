@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import request from 'supertest';
 import { SessionDtoSchema } from '@neobank/shared/models';
 import { createApp } from '../../app';
@@ -35,10 +36,12 @@ describe('password and sessions', () => {
   }
 
   const sessions = async (auth: { Authorization: string }) =>
-    SessionDtoSchema.array().parse(
-      (await request(app).get('/api/security/sessions').set(auth).expect(200))
-        .body,
-    );
+    z
+      .array(SessionDtoSchema)
+      .parse(
+        (await request(app).get('/api/security/sessions').set(auth).expect(200))
+          .body,
+      );
 
   it('lists one row per device and marks the current one', async () => {
     const laptop = await device('Laptop Chrome');

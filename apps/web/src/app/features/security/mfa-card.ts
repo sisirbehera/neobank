@@ -15,7 +15,7 @@ import {
   zodValidator,
 } from '@neobank/web/ui';
 import { firstValueFrom } from 'rxjs';
-import { z } from 'zod';
+import * as z from 'zod/mini';
 import { AuthStore } from '../../core/auth/auth.store';
 import { toApiError } from '../../core/http/api-error';
 import { SecurityApi } from '../../core/security/security.api';
@@ -193,7 +193,10 @@ export class MfaCard {
   protected readonly notice = signal<string | null>(null);
 
   protected readonly disableForm = this.fb.group({
-    password: ['', zodValidator(z.string().min(1, 'Password is required'))],
+    password: [
+      '',
+      zodValidator(z.string().check(z.minLength(1, 'Password is required'))),
+    ],
     code: ['', zodValidator(MfaCodeSchema)],
   });
   protected readonly codeForm = this.fb.group({

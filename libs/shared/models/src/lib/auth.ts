@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod/mini';
 
 export const UserRoleSchema = z.enum(['customer', 'admin']);
 export type UserRole = z.infer<typeof UserRoleSchema>;
@@ -7,22 +7,25 @@ export type UserRole = z.infer<typeof UserRoleSchema>;
 
 export const NameSchema = z
   .string()
-  .trim()
-  .min(2, 'Name must be at least 2 characters')
-  .max(80, 'Name must be at most 80 characters');
+  .check(
+    z.trim(),
+    z.minLength(2, 'Name must be at least 2 characters'),
+    z.maxLength(80, 'Name must be at most 80 characters'),
+  );
 
-export const EmailSchema = z
-  .string()
-  .trim()
-  .toLowerCase()
-  .pipe(z.email('Enter a valid email address'));
+export const EmailSchema = z.pipe(
+  z.string().check(z.trim(), z.toLowerCase()),
+  z.email('Enter a valid email address'),
+);
 
 export const NewPasswordSchema = z
   .string()
-  .min(8, 'Password must be at least 8 characters')
-  .max(72, 'Password must be at most 72 characters')
-  .regex(/[A-Za-z]/, 'Password must contain a letter')
-  .regex(/\d/, 'Password must contain a number');
+  .check(
+    z.minLength(8, 'Password must be at least 8 characters'),
+    z.maxLength(72, 'Password must be at most 72 characters'),
+    z.regex(/[A-Za-z]/, 'Password must contain a letter'),
+    z.regex(/\d/, 'Password must contain a number'),
+  );
 
 // ---- Requests ---------------------------------------------------------------
 
@@ -36,7 +39,9 @@ export type RegisterRequest = z.infer<typeof RegisterRequestSchema>;
 export const LoginRequestSchema = z.object({
   email: EmailSchema,
   // Don't apply the "new password" rules here: older passwords must still work.
-  password: z.string().min(1, 'Password is required').max(200),
+  password: z
+    .string()
+    .check(z.minLength(1, 'Password is required'), z.maxLength(200)),
 });
 export type LoginRequest = z.infer<typeof LoginRequestSchema>;
 
