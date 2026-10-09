@@ -13,6 +13,7 @@ export type ButtonVariant =
   | 'danger'
   | 'outline-primary'
   | 'outline-secondary'
+  | 'outline-danger'
   | 'link';
 
 export type ButtonSize = 'sm' | 'md' | 'lg';

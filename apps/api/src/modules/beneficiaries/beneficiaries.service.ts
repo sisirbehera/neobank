@@ -8,6 +8,7 @@ import type { z } from 'zod';
 import { HttpError } from '../../lib/http-error';
 import { isDuplicateKey } from '../../lib/mongo-errors';
 import { AccountModel } from '../accounts/account.model';
+import type { MfaService } from '../security/mfa.service';
 import { BeneficiaryModel, toBeneficiaryDto } from './beneficiary.model';
 
 type AddBeneficiaryInput = z.output<typeof AddBeneficiaryRequestSchema>;
@@ -15,6 +16,8 @@ type AddBeneficiaryInput = z.output<typeof AddBeneficiaryRequestSchema>;
 const notFound = () => HttpError.notFound('Beneficiary not found');
 
 export class BeneficiariesService {
+  constructor(private readonly mfa: MfaService) {}
+
   async list(userId: string): Promise<BeneficiaryDto[]> {
     const beneficiaries = await BeneficiaryModel.find({ userId }).sort({
       name: 1,
@@ -22,9 +25,11 @@ export class BeneficiariesService {
     return beneficiaries.map(toBeneficiaryDto);
   }
 
+  /** `stepUpToken`: users with 2FA confirm new payees with a fresh code. */
   async add(
     userId: string,
     input: AddBeneficiaryInput,
+    stepUpToken?: string,
   ): Promise<BeneficiaryDto> {
     const count = await BeneficiaryModel.countDocuments({ userId });
     if (count >= MAX_BENEFICIARIES_PER_USER) {
@@ -50,6 +55,10 @@ export class BeneficiariesService {
         'This is one of your own accounts. You can transfer to it directly.';
       throw HttpError.badRequest(message, { accountNumber: [message] });
     }
+
+    // Only after the input is known to be fine, so nobody is asked for a code
+    // and then told the account number is wrong.
+    await this.mfa.requireStepUp(userId, 'ADD_BENEFICIARY', stepUpToken);
 
     try {
       return toBeneficiaryDto(

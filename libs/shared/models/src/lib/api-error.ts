@@ -7,6 +7,8 @@ export const ApiErrorSchema = z.object({
     message: z.string(),
     /** Field-level validation messages, keyed by field path. */
     fields: z.record(z.string(), z.array(z.string())).optional(),
+    /** Extra machine-readable details, e.g. { action } for STEP_UP_REQUIRED. */
+    meta: z.record(z.string(), z.string()).optional(),
   }),
 });
 

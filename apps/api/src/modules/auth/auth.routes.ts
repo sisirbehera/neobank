@@ -7,8 +7,12 @@ import {
 import { rateLimit } from 'express-rate-limit';
 import {
   LoginRequestSchema,
+  MfaEnrollConfirmRequestSchema,
+  MfaTokenRequestSchema,
+  MfaVerifyRequestSchema,
   RegisterRequestSchema,
   type AuthResponse,
+  type EnrollConfirmResponse,
 } from '@neobank/shared/models';
 import type { AuthConfig } from '../../config/app-config';
 import { HttpError } from '../../lib/http-error';
@@ -81,7 +85,56 @@ export function authRoutes(config: AuthConfig): Router {
     credentialsLimiter,
     validateBody(LoginRequestSchema),
     async (req, res) => {
-      sendSession(res, await auth.login(req.body, meta(req)));
+      const result = await auth.login(req.body, meta(req));
+      // A 2FA challenge has no session yet: no cookie, just the challenge.
+      if ('mfaRequired' in result) res.json(result);
+      else sendSession(res, result);
+    },
+  );
+
+  // ---- Second step of signing in ----------------------------------------------
+
+  router.post(
+    '/mfa/verify',
+    credentialsLimiter,
+    validateBody(MfaVerifyRequestSchema),
+    async (req, res) => {
+      sendSession(
+        res,
+        await auth.verifyMfa(req.body.mfaToken, req.body.code, meta(req)),
+      );
+    },
+  );
+
+  router.post(
+    '/mfa/enroll/start',
+    credentialsLimiter,
+    validateBody(MfaTokenRequestSchema),
+    async (req, res) => {
+      res.json(await auth.enrollStart(req.body.mfaToken));
+    },
+  );
+
+  router.post(
+    '/mfa/enroll/confirm',
+    credentialsLimiter,
+    validateBody(MfaEnrollConfirmRequestSchema),
+    async (req, res) => {
+      const { session, backupCodes } = await auth.enrollConfirm(
+        req.body.mfaToken,
+        req.body.code,
+        meta(req),
+      );
+      res.cookie(REFRESH_COOKIE, session.refreshToken, {
+        ...cookieOptions,
+        maxAge: config.refreshTokenTtlDays * 86_400_000,
+      });
+      const body: EnrollConfirmResponse = {
+        accessToken: session.accessToken,
+        user: session.user,
+        backupCodes,
+      };
+      res.json(body);
     },
   );
 

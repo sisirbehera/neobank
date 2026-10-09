@@ -46,6 +46,8 @@ In development the API seeds these logins on every start:
 | Second customer (Ravi) | `ravi@neobank.dev`  | `Demo@1234`  |
 | Admin                  | `admin@neobank.dev` | `Admin@1234` |
 
+The admin must set up two-step verification on the first sign-in. Scan the QR code with any authenticator app.
+
 Priya has 6 months of history (salary, rent share, bills, transfers with Ravi). In production, demo data is controlled by `SEED_DEMO_DATA`, and an admin exists **only** if you set `ADMIN_PASSWORD`.
 
 | Command         | What it does                          |
@@ -77,10 +79,38 @@ Priya has 6 months of history (salary, rent share, bills, transfers with Ravi). 
 
 - **Access token:** a JWT (HS256) valid for 15 minutes. The browser keeps it **in memory only** and sends it as `Authorization: Bearer …`.
 - **Refresh token:** a random opaque string in the `nb_rt` cookie (`HttpOnly`, `SameSite=Strict`, `Path=/api/auth`, `Secure` in production), valid for 7 days. Only its SHA-256 hash is stored in MongoDB.
-- **Rotation and reuse detection:** every refresh revokes the old token and issues a new one. If a revoked token is used again, all of that user's sessions are revoked. The exception is a **30-second grace period** after a rotation, which covers lost responses such as a tab closed or reloaded mid-request, or two tabs refreshing at once.
+- **Rotation and reuse detection:** every refresh revokes the old token and issues a new one in the same **session** (one sign-in on one device). If a token that was already _rotated_ is used again, all of that user's sessions are revoked. The exception is a **30-second grace period** after a rotation, which covers lost responses such as a tab closed or reloaded mid-request, or two tabs refreshing at once. Tokens ended by logging out or "sign out this device" just stop working, without logging out everywhere.
 - **Passwords** are hashed with Node's built-in `scrypt`. After 5 failed logins the account is locked for 15 minutes. Login and register are rate-limited per IP (`AUTH_RATE_LIMIT`). Refresh, which every page load calls, gets 10× that limit.
 - **On page load**, Angular calls `/refresh` to restore the session. The interceptor refreshes and retries once on a `401`.
 - **Protecting a route:** `router.get('/x', requireAuth(secret), requireRole('admin'), handler)`. On the web side, use `canActivate: [authGuard]`.
+
+## Two-step verification and security
+
+Codes come from any authenticator app (TOTP, RFC 6238, implemented with Node's `crypto` in [`lib/totp.ts`](apps/api/src/lib/totp.ts)). 2FA is **optional for customers** and **mandatory for admins**.
+
+| Endpoint                                    | Purpose                                                        |
+| ------------------------------------------- | -------------------------------------------------------------- |
+| `POST /api/auth/login`                      | A session, **or** `{ mfaRequired, mfaToken, method }`          |
+| `POST /api/auth/mfa/verify`                 | `mfaToken` + 6-digit or backup code → session                  |
+| `POST /api/auth/mfa/enroll/start\|confirm`  | Admin's first sign-in: QR code → code → session + backup codes |
+| `POST /api/security/mfa/setup\|enable`      | Turn 2FA on (Security page)                                    |
+| `POST /api/security/mfa/disable`            | Password + code (not allowed for admins)                       |
+| `POST /api/security/mfa/backup-codes`       | New set of 10 backup codes                                     |
+| `POST /api/security/step-up`                | Fresh code → 5-minute token for one risky action               |
+| `POST /api/security/password`               | Change password, signs out other devices                       |
+| `GET /api/security/sessions`                | Signed-in devices (one row per session)                        |
+| `DELETE /api/security/sessions/:id`         | Sign out one device                                            |
+| `POST /api/security/sessions/revoke-others` | Sign out all other devices                                     |
+
+- **Two steps:** with 2FA on, the password alone only earns a 5-minute challenge token (a JWT with its own audience, so it can't be used as an access token). The session starts after a correct code.
+- **Admins:** an admin without 2FA gets `method: "ENROLL"` and must set it up before getting in. `/api/admin/*` also checks the access token's `mfa` claim.
+- **Step-up for risky actions:** adding a beneficiary, and transfers to other people above ₹10,000, answer `403 STEP_UP_REQUIRED` (`meta.action`). The web app's `stepUpInterceptor` asks for a code, gets a step-up token and retries the same request with `X-Step-Up-Token`. Retries keep their Idempotency-Key. Transfers between your own accounts never need a code.
+- **Storage:**
+  - the TOTP secret is AES-256-GCM encrypted (`MFA_ENCRYPTION_KEY`);
+  - backup codes are SHA-256 hashed and single-use;
+  - `lastUsedStep` stops a code from being used twice.
+- **Lockout:** wrong passwords, codes and step-up codes share one counter (5 tries → locked for 15 minutes).
+- **Sessions:** the access token carries the session id (`sid`), so the API knows which device is "this device". Signing a device out stops its refresh. Its current access token expires within 15 minutes.
 
 ## Accounts and money movement
 
@@ -173,5 +203,5 @@ On the free tier the service sleeps after 15 minutes idle, so the first request 
 - [x] Day 3 – Accounts + dashboard
 - [x] Day 4 – Transfers, beneficiaries, idempotency
 - [x] Day 5 – History, statements, chart, admin, demo data
-- [ ] Day 6 – Tests, security hardening
-- [ ] Day 7 – Deploy
+- [x] Day 6 – Two-step verification, step-up for risky actions, password change, sessions
+- [ ] Day 7 – Performance, API docs, deploy

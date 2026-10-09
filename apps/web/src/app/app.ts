@@ -73,6 +73,7 @@ export class App {
     { path: '/transactions', label: 'Transactions' },
     { path: '/transfer', label: 'Transfer' },
     { path: '/beneficiaries', label: 'Beneficiaries' },
+    { path: '/security', label: 'Security' },
     ...(this.auth.isAdmin() ? [{ path: '/admin', label: 'Admin' }] : []),
   ]);
 

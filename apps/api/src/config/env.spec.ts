@@ -25,6 +25,7 @@ describe('env', () => {
       NODE_ENV: 'production',
       MONGODB_URI: 'mongodb://example',
       JWT_ACCESS_SECRET: 'x'.repeat(40),
+      MFA_ENCRYPTION_KEY: 'y'.repeat(40),
     });
 
     expect(toAppConfig(env).demoDataEnabled).toBe(false);

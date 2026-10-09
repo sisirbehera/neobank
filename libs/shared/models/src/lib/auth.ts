@@ -47,6 +47,8 @@ export const UserDtoSchema = z.object({
   name: z.string(),
   email: z.string(),
   role: UserRoleSchema,
+  /** Two-step verification (authenticator app) is on. */
+  mfaEnabled: z.boolean(),
   createdAt: z.iso.datetime(),
 });
 export type UserDto = z.infer<typeof UserDtoSchema>;

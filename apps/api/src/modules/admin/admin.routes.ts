@@ -6,7 +6,7 @@ import {
 } from '@neobank/shared/models';
 import { HttpError } from '../../lib/http-error';
 import { param, userId } from '../../lib/request';
-import { requireAuth, requireRole } from '../../middleware/auth';
+import { requireAuth, requireMfa, requireRole } from '../../middleware/auth';
 import { parseQuery, validateBody } from '../../middleware/validate';
 import { seedDemoData } from '../../seed/demo-data';
 import { AdminService } from './admin.service';
@@ -25,7 +25,12 @@ export function adminRoutes({
   const admin = new AdminService();
 
   // Every route below: signed in AND role "admin".
-  router.use(requireAuth(accessTokenSecret), requireRole('admin'));
+  // …and the session must have been started with two-step verification.
+  router.use(
+    requireAuth(accessTokenSecret),
+    requireRole('admin'),
+    requireMfa(),
+  );
 
   router.get('/stats', async (_req, res) => {
     res.json(await admin.stats());

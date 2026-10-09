@@ -4,4 +4,5 @@ export * from './lib/auth';
 export * from './lib/health';
 export * from './lib/history';
 export * from './lib/money';
+export * from './lib/security';
 export * from './lib/transfers';

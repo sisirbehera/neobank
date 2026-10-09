@@ -3,7 +3,13 @@ import { inject, Injectable } from '@angular/core';
 import {
   type AuthResponse,
   AuthResponseSchema,
+  type EnrollConfirmResponse,
+  EnrollConfirmResponseSchema,
   type LoginRequest,
+  type LoginResponse,
+  LoginResponseSchema,
+  type MfaSetupResponse,
+  MfaSetupResponseSchema,
   type RegisterRequest,
 } from '@neobank/shared/models';
 import { map, Observable } from 'rxjs';
@@ -17,8 +23,32 @@ export class AuthApi {
     return this.session(this.http.post('/api/auth/register', body));
   }
 
-  login(body: LoginRequest): Observable<AuthResponse> {
-    return this.session(this.http.post('/api/auth/login', body));
+  /** A session, or a 2FA challenge when a second step is needed. */
+  login(body: LoginRequest): Observable<LoginResponse> {
+    return this.http
+      .post<unknown>('/api/auth/login', body)
+      .pipe(map((res) => LoginResponseSchema.parse(res)));
+  }
+
+  verifyMfa(mfaToken: string, code: string): Observable<AuthResponse> {
+    return this.session(
+      this.http.post('/api/auth/mfa/verify', { mfaToken, code }),
+    );
+  }
+
+  enrollStart(mfaToken: string): Observable<MfaSetupResponse> {
+    return this.http
+      .post<unknown>('/api/auth/mfa/enroll/start', { mfaToken })
+      .pipe(map((res) => MfaSetupResponseSchema.parse(res)));
+  }
+
+  enrollConfirm(
+    mfaToken: string,
+    code: string,
+  ): Observable<EnrollConfirmResponse> {
+    return this.http
+      .post<unknown>('/api/auth/mfa/enroll/confirm', { mfaToken, code })
+      .pipe(map((res) => EnrollConfirmResponseSchema.parse(res)));
   }
 
   refresh(): Observable<AuthResponse> {

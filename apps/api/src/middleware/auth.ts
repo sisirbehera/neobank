@@ -12,7 +12,12 @@ export function requireAuth(accessTokenSecret: string): RequestHandler {
 
     if (!claims) return next(HttpError.unauthorized());
 
-    req.auth = { userId: claims.sub, role: claims.role };
+    req.auth = {
+      userId: claims.sub,
+      role: claims.role,
+      mfa: claims.mfa,
+      sessionId: claims.sid,
+    };
     next();
   };
 }
@@ -22,5 +27,19 @@ export function requireRole(...roles: UserRole[]): RequestHandler {
   return (req, _res, next) => {
     if (req.auth && roles.includes(req.auth.role)) return next();
     next(HttpError.forbidden());
+  };
+}
+
+/** Use after requireAuth: the session must have been started with 2FA. */
+export function requireMfa(): RequestHandler {
+  return (req, _res, next) => {
+    if (req.auth?.mfa) return next();
+    next(
+      new HttpError(
+        403,
+        'MFA_REQUIRED',
+        'Sign in again with two-step verification to continue',
+      ),
+    );
   };
 }

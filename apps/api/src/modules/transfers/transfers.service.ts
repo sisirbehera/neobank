@@ -1,14 +1,16 @@
 import { isValidObjectId } from 'mongoose';
-import type {
-  AccountType,
-  TransferRequestSchema,
-  TransferResponse,
+import {
+  type AccountType,
+  STEP_UP_TRANSFER_THRESHOLD_PAISE,
+  type TransferRequestSchema,
+  type TransferResponse,
 } from '@neobank/shared/models';
 import { maskAccountNumber } from '@neobank/shared/utils';
 import type { z } from 'zod';
 import { HttpError } from '../../lib/http-error';
 import { AccountModel, toAccountDto } from '../accounts/account.model';
 import { BeneficiaryModel } from '../beneficiaries/beneficiary.model';
+import type { MfaService } from '../security/mfa.service';
 import {
   type IdempotentOutcome,
   runIdempotent,
@@ -36,6 +38,8 @@ const recipientUnavailable = () =>
   );
 
 export class TransfersService {
+  constructor(private readonly mfa: MfaService) {}
+
   /**
    * Moves money from one of the user's accounts to another account.
    *
@@ -48,6 +52,7 @@ export class TransfersService {
     userId: string,
     input: TransferInput,
     key: string,
+    stepUpToken?: string,
   ): Promise<IdempotentOutcome<TransferResponse>> {
     if (!isValidObjectId(input.fromAccountId)) throw accountNotFound();
 
@@ -93,6 +98,10 @@ export class TransfersService {
         if (to.status !== 'ACTIVE') throw recipientUnavailable();
 
         const amount = input.amountPaise;
+        // Large payments to other people need a fresh 2FA code (users with 2FA).
+        if (!isOwn && amount > STEP_UP_TRANSFER_THRESHOLD_PAISE) {
+          await this.mfa.requireStepUp(userId, 'LARGE_TRANSFER', stepUpToken);
+        }
         const debited = await debitOwnAccount(session, {
           accountId: from.id,
           userId,

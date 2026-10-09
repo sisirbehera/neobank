@@ -1,3 +1,4 @@
+import { totp } from './support/totp';
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -81,7 +82,25 @@ test('admin freezes a customer account; the customer can no longer move money', 
   await page.getByRole('button', { name: 'Log out' }).click();
 
   // Admin finds the customer and freezes the account with a reason.
-  await logIn(page, 'admin@neobank.dev', 'Admin@1234');
+  // Admins must set up two-step verification on their first sign-in.
+  await page.goto('/login');
+  await page.getByLabel('Email').fill('admin@neobank.dev');
+  await page.getByLabel('Password').fill('Admin@1234');
+  await page.getByRole('button', { name: 'Log in' }).click();
+  await expect(
+    page.getByText('Admin accounts must use two-step verification'),
+  ).toBeVisible();
+  const secret = (await page.getByTestId('mfa-secret').innerText()).replace(
+    /\s/g,
+    '',
+  );
+  await page.getByLabel('6-digit code').fill(totp(secret));
+  await page
+    .getByRole('button', { name: 'Turn on two-step verification' })
+    .click();
+  await page.getByLabel('I have saved my backup codes').check();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
   await page.getByRole('link', { name: 'Admin' }).click();
   await expect(page.getByText('Deposits held')).toBeVisible();
   await page.getByRole('link', { name: 'Users' }).click();

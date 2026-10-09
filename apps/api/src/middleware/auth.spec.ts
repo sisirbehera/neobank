@@ -31,7 +31,12 @@ describe('requireAuth', () => {
     const next = run(requireAuth(TEST_SECRET), req);
 
     expect(next).toHaveBeenCalledWith();
-    expect(req.auth).toEqual({ userId: 'u1', role: 'admin' });
+    expect(req.auth).toEqual({
+      userId: 'u1',
+      role: 'admin',
+      mfa: false,
+      sessionId: '',
+    });
   });
 
   it('rejects an expired token', () => {
@@ -50,14 +55,14 @@ describe('requireAuth', () => {
 describe('requireRole', () => {
   it('allows a matching role', () => {
     const next = run(requireRole('admin'), {
-      auth: { userId: 'u1', role: 'admin' },
+      auth: { userId: 'u1', role: 'admin', mfa: false, sessionId: '' },
     });
     expect(next).toHaveBeenCalledWith();
   });
 
   it('forbids other roles', () => {
     const next = run(requireRole('admin'), {
-      auth: { userId: 'u1', role: 'customer' },
+      auth: { userId: 'u1', role: 'customer', mfa: false, sessionId: '' },
     });
     const err = next.mock.calls[0][0];
     expect(err).toBeInstanceOf(HttpError);

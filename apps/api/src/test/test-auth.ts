@@ -1,5 +1,6 @@
 import request from 'supertest';
 import type { Express } from 'express';
+import { totpCode, totpStep } from '../lib/totp';
 import { UserModel } from '../modules/users/user.model';
 
 let counter = 0;
@@ -22,15 +23,36 @@ export async function signUp(
   };
 }
 
-/** Registers a user, promotes them to admin and logs in again (fresh role claim). */
-export async function signUpAdmin(
-  app: Express,
-): Promise<{ auth: { Authorization: string }; userId: string }> {
+/**
+ * Registers a user, promotes them to admin and signs in the way an admin must:
+ * password → enrol in 2FA → session (with the `mfa` claim admin routes need).
+ */
+export async function signUpAdmin(app: Express): Promise<{
+  auth: { Authorization: string };
+  userId: string;
+  secret: string;
+}> {
   const { email, userId } = await signUp(app, 'Admin User');
   await UserModel.updateOne({ _id: userId }, { role: 'admin' });
-  const res = await request(app)
+
+  const login = await request(app)
     .post('/api/auth/login')
     .send({ email, password: 'secret123' })
     .expect(200);
-  return { auth: { Authorization: `Bearer ${res.body.accessToken}` }, userId };
+  const { mfaToken } = login.body;
+
+  const setup = await request(app)
+    .post('/api/auth/mfa/enroll/start')
+    .send({ mfaToken })
+    .expect(200);
+  const confirmed = await request(app)
+    .post('/api/auth/mfa/enroll/confirm')
+    .send({ mfaToken, code: totpCode(setup.body.secret, totpStep()) })
+    .expect(200);
+
+  return {
+    auth: { Authorization: `Bearer ${confirmed.body.accessToken}` },
+    userId,
+    secret: setup.body.secret,
+  };
 }

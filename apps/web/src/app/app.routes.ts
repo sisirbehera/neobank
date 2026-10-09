@@ -58,6 +58,13 @@ export const appRoutes: Route[] = [
       ),
   },
   {
+    path: 'security',
+    title: 'Security · NeoBank',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/security/security').then((m) => m.Security),
+  },
+  {
     path: 'transactions',
     title: 'Transactions · NeoBank',
     canActivate: [authGuard],

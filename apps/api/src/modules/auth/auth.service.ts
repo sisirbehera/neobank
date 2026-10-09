@@ -1,17 +1,32 @@
+import { randomUUID } from 'node:crypto';
 import type {
   LoginRequest,
+  MfaChallenge,
+  MfaSetupResponse,
   RegisterRequest,
   UserDto,
 } from '@neobank/shared/models';
 import type { AuthConfig } from '../../config/app-config';
 import { HttpError } from '../../lib/http-error';
-import { toUserDto, UserDocument, UserModel } from '../users/user.model';
+import { MfaService } from '../security/mfa.service';
+import {
+  MFA_SECRETS,
+  toUserDto,
+  UserDocument,
+  UserModel,
+} from '../users/user.model';
+import { assertNotLocked, recordFailedAttempt } from './lockout';
 import { hashPassword, verifyPassword } from './password';
 import { RefreshTokenModel } from './refresh-token.model';
-import { generateRefreshToken, hashToken, signAccessToken } from './tokens';
+import {
+  generateRefreshToken,
+  hashToken,
+  type MfaChallengeClaims,
+  signAccessToken,
+  signMfaChallenge,
+  verifyMfaChallenge,
+} from './tokens';
 
-const MAX_FAILED_LOGINS = 5;
-const LOCK_MINUTES = 15;
 /** How long a just-rotated refresh token may still be used (lost responses). */
 export const REUSE_GRACE_MS = 30_000;
 
@@ -26,6 +41,13 @@ export interface Session {
   user: UserDto;
 }
 
+/** Continues an existing sign-in when a refresh token is rotated. */
+interface SessionContext {
+  sessionId: string;
+  sessionStartedAt: Date;
+  mfa: boolean;
+}
+
 const invalidCredentials = () =>
   HttpError.unauthorized('Incorrect email or password', 'INVALID_CREDENTIALS');
 
@@ -33,6 +55,12 @@ const sessionExpired = () =>
   HttpError.unauthorized(
     'Your session has expired. Please log in again.',
     'SESSION_EXPIRED',
+  );
+
+const challengeExpired = () =>
+  HttpError.unauthorized(
+    'Your sign-in attempt expired. Please log in again.',
+    'MFA_TOKEN_INVALID',
   );
 
 const emailTaken = () => {
@@ -43,8 +71,14 @@ const emailTaken = () => {
 export class AuthService {
   /** Hash used for unknown emails, so they take as long as wrong passwords. */
   private dummyHash?: Promise<string>;
+  private readonly mfa: MfaService;
 
-  constructor(private readonly config: AuthConfig) {}
+  constructor(private readonly config: AuthConfig) {
+    this.mfa = new MfaService({
+      encryptionKey: config.mfaEncryptionKey,
+      tokenSecret: config.accessTokenSecret,
+    });
+  }
 
   async register(input: RegisterRequest, meta: ClientMeta): Promise<Session> {
     if (await UserModel.exists({ email: input.email })) throw emailTaken();
@@ -63,7 +97,16 @@ export class AuthService {
     }
   }
 
-  async login(input: LoginRequest, meta: ClientMeta): Promise<Session> {
+  /**
+   * Step 1 of signing in. Returns a session, or, when a second step is
+   * needed, a short-lived challenge token (no session, no cookie):
+   *  - VERIFY: 2FA is on → enter a code
+   *  - ENROLL: admin without 2FA → must set it up before getting in
+   */
+  async login(
+    input: LoginRequest,
+    meta: ClientMeta,
+  ): Promise<Session | MfaChallenge> {
     const user = await UserModel.findOne({ email: input.email }).select(
       '+passwordHash',
     );
@@ -73,28 +116,56 @@ export class AuthService {
       throw invalidCredentials();
     }
 
-    if (user.lockedUntil && user.lockedUntil > new Date()) {
-      const minutes = Math.ceil(
-        (user.lockedUntil.getTime() - Date.now()) / 60_000,
-      );
-      throw new HttpError(
-        423,
-        'ACCOUNT_LOCKED',
-        `Too many failed attempts. Try again in ${minutes} minute(s).`,
-      );
-    }
+    assertNotLocked(user);
 
     if (!(await verifyPassword(input.password, user.passwordHash))) {
-      await this.recordFailedLogin(user);
+      await recordFailedAttempt(user._id);
       throw invalidCredentials();
     }
 
     user.failedLoginCount = 0;
     user.lockedUntil = undefined;
-    user.lastLoginAt = new Date();
     await user.save();
 
+    if (user.mfa?.enabled) return this.challenge(user, 'VERIFY');
+    if (user.role === 'admin') return this.challenge(user, 'ENROLL');
+
+    await this.markLoggedIn(user);
     return this.issueSession(user, meta);
+  }
+
+  /** Step 2: a 6-digit code (or a backup code) turns the challenge into a session. */
+  async verifyMfa(
+    mfaToken: string,
+    code: string,
+    meta: ClientMeta,
+  ): Promise<Session> {
+    const user = await this.userForChallenge(mfaToken, 'VERIFY');
+    await this.mfa.requireCode(user, code);
+    await this.markLoggedIn(user);
+    return this.issueSession(user, meta, { mfa: true });
+  }
+
+  /** Admin's first sign-in: set up 2FA before anything else. */
+  async enrollStart(mfaToken: string): Promise<MfaSetupResponse> {
+    const user = await this.userForChallenge(mfaToken, 'ENROLL');
+    return this.mfa.startSetup(user.id);
+  }
+
+  async enrollConfirm(
+    mfaToken: string,
+    code: string,
+    meta: ClientMeta,
+  ): Promise<{ session: Session; backupCodes: string[] }> {
+    const user = await this.userForChallenge(mfaToken, 'ENROLL');
+    const backupCodes = await this.mfa.confirmSetup(user.id, code);
+    await this.markLoggedIn(user);
+    const updated = await UserModel.findById(user._id);
+    if (!updated) throw challengeExpired();
+    return {
+      session: await this.issueSession(updated, meta, { mfa: true }),
+      backupCodes,
+    };
   }
 
   /** Swaps a valid refresh token for a new session (token rotation). */
@@ -123,12 +194,13 @@ export class AuthService {
         now.getTime() - reused.rotatedAt.getTime() < REUSE_GRACE_MS
       ) {
         const user = await UserModel.findById(reused.userId);
-        if (user) return this.issueSession(user, meta);
+        if (user) return this.issueSession(user, meta, contextOf(reused));
       }
 
-      if (reused?.revokedAt) {
-        // A revoked token came back: assume it was stolen and end every
-        // session (also closing the grace period for recently rotated tokens).
+      if (reused?.rotatedAt) {
+        // A token that was already replaced came back: someone has a copy.
+        // End every session (also closing grace periods). Tokens revoked by
+        // logout / "sign out this device" never had rotatedAt, so they just fail.
         await RefreshTokenModel.updateMany(
           { userId: reused.userId },
           { $set: { revokedAt: now }, $unset: { rotatedAt: '' } },
@@ -140,7 +212,7 @@ export class AuthService {
     const user = await UserModel.findById(claimed.userId);
     if (!user) throw sessionExpired();
 
-    return this.issueSession(user, meta);
+    return this.issueSession(user, meta, contextOf(claimed));
   }
 
   async logout(token: string | undefined): Promise<void> {
@@ -157,17 +229,55 @@ export class AuthService {
     return toUserDto(user);
   }
 
+  private challenge(
+    user: UserDocument,
+    method: MfaChallengeClaims['purpose'],
+  ): MfaChallenge {
+    return {
+      mfaRequired: true,
+      method,
+      mfaToken: signMfaChallenge(
+        { sub: user.id, purpose: method },
+        this.config.accessTokenSecret,
+      ),
+    };
+  }
+
+  private async userForChallenge(
+    mfaToken: string,
+    purpose: MfaChallengeClaims['purpose'],
+  ): Promise<UserDocument> {
+    const claims = verifyMfaChallenge(mfaToken, this.config.accessTokenSecret);
+    if (!claims || claims.purpose !== purpose) throw challengeExpired();
+    const user = await UserModel.findById(claims.sub).select(MFA_SECRETS);
+    if (!user) throw challengeExpired();
+    return user;
+  }
+
+  private async markLoggedIn(user: UserDocument): Promise<void> {
+    await UserModel.updateOne(
+      { _id: user._id },
+      { $set: { lastLoginAt: new Date() } },
+    );
+  }
+
   private async issueSession(
     user: UserDocument,
     meta: ClientMeta,
+    context: Partial<SessionContext> = {},
   ): Promise<Session> {
     const { accessTokenSecret, accessTokenTtlMinutes, refreshTokenTtlDays } =
       this.config;
+    const mfa = context.mfa ?? false;
+    const sessionId = context.sessionId ?? randomUUID();
 
     const refreshToken = generateRefreshToken();
     await RefreshTokenModel.create({
       userId: user._id,
       tokenHash: hashToken(refreshToken),
+      sessionId,
+      sessionStartedAt: context.sessionStartedAt ?? new Date(),
+      mfa,
       expiresAt: new Date(Date.now() + refreshTokenTtlDays * 86_400_000),
       userAgent: meta.userAgent,
       ip: meta.ip,
@@ -175,7 +285,7 @@ export class AuthService {
 
     return {
       accessToken: signAccessToken(
-        { sub: user.id, role: user.role },
+        { sub: user.id, role: user.role, mfa, sid: sessionId },
         accessTokenSecret,
         accessTokenTtlMinutes,
       ),
@@ -184,28 +294,20 @@ export class AuthService {
     };
   }
 
-  private async recordFailedLogin(user: UserDocument): Promise<void> {
-    // $inc is atomic, so parallel guesses can't slip past the limit.
-    const updated = await UserModel.findByIdAndUpdate(
-      user._id,
-      { $inc: { failedLoginCount: 1 } },
-      { returnDocument: 'after' },
-    );
-    if (updated && updated.failedLoginCount >= MAX_FAILED_LOGINS) {
-      await UserModel.updateOne(
-        { _id: user._id },
-        {
-          $set: {
-            failedLoginCount: 0,
-            lockedUntil: new Date(Date.now() + LOCK_MINUTES * 60_000),
-          },
-        },
-      );
-    }
-  }
-
   private getDummyHash(): Promise<string> {
     this.dummyHash ??= hashPassword('dummy-password-for-timing');
     return this.dummyHash;
   }
+}
+
+function contextOf(token: {
+  sessionId: string;
+  sessionStartedAt: Date;
+  mfa: boolean;
+}): SessionContext {
+  return {
+    sessionId: token.sessionId,
+    sessionStartedAt: token.sessionStartedAt,
+    mfa: token.mfa,
+  };
 }

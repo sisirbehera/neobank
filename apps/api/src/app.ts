@@ -8,6 +8,7 @@ import { apiNotFound, errorHandler } from './middleware/error-handler';
 import { adminRoutes } from './modules/admin/admin.routes';
 import { accountsRoutes } from './modules/accounts/accounts.routes';
 import { authRoutes } from './modules/auth/auth.routes';
+import { securityRoutes } from './modules/security/security.routes';
 import { beneficiariesRoutes } from './modules/beneficiaries/beneficiaries.routes';
 import { transfersRoutes } from './modules/transfers/transfers.routes';
 import { historyRoutes } from './modules/history/history.routes';
@@ -27,9 +28,10 @@ export function createApp(config: AppConfig) {
   const api = Router();
   api.use('/health', healthRoutes(config.version, config.demoDataEnabled));
   api.use('/auth', authRoutes(config.auth));
+  api.use('/security', securityRoutes(config.auth));
   api.use('/accounts', accountsRoutes(config.auth.accessTokenSecret));
-  api.use('/beneficiaries', beneficiariesRoutes(config.auth.accessTokenSecret));
-  api.use('/transfers', transfersRoutes(config.auth.accessTokenSecret));
+  api.use('/beneficiaries', beneficiariesRoutes(config.auth));
+  api.use('/transfers', transfersRoutes(config.auth));
   api.use('/transactions', historyRoutes(config.auth.accessTokenSecret));
   api.use(
     '/admin',

@@ -6,6 +6,8 @@ export interface AuthConfig {
   secureCookies: boolean;
   /** Max auth requests per IP per 15 minutes. */
   rateLimit: number;
+  /** Encrypts 2FA secrets at rest (any long random string). */
+  mfaEncryptionKey: string;
 }
 
 /** Everything createApp() needs; built from env vars in main.ts and by hand in tests. */

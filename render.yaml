@@ -19,3 +19,5 @@ services:
         value: 'true' # public demo: seeds demo@neobank.dev / Demo@1234 with history
       - key: ADMIN_PASSWORD
         sync: false # secret – without it there is no admin user (admin@neobank.dev)
+      - key: MFA_ENCRYPTION_KEY
+        generateValue: true # encrypts 2FA secrets in MongoDB – never change it after users enrol

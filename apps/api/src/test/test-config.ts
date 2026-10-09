@@ -13,6 +13,7 @@ export function testConfig(
       refreshTokenTtlDays: 7,
       secureCookies: false,
       rateLimit: 1000,
+      mfaEncryptionKey: 'test-mfa-encryption-key',
       ...overrides,
     },
     demoDataEnabled: true,
