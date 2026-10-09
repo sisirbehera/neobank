@@ -1,11 +1,16 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { Router, RouterLink, RouterOutlet } from '@angular/router';
+import {
+  Router,
+  RouterLink,
+  RouterLinkActive,
+  RouterOutlet,
+} from '@angular/router';
 import { ThemeSwitcher } from '@neobank/web/ui';
 import { AuthStore } from './core/auth/auth.store';
 
 @Component({
   selector: 'nb-root',
-  imports: [RouterOutlet, RouterLink, ThemeSwitcher],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ThemeSwitcher],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <nav class="navbar nb-navbar" data-bs-theme="dark">
@@ -14,9 +19,14 @@ import { AuthStore } from './core/auth/auth.store';
 
         <div class="d-flex align-items-center flex-wrap gap-2">
           @if (auth.isAuthenticated()) {
-            <a class="btn btn-sm btn-link text-white" routerLink="/dashboard"
-              >Dashboard</a
-            >
+            @for (link of links; track link.path) {
+              <a
+                class="btn btn-sm btn-link text-white text-decoration-none"
+                routerLinkActive="fw-semibold text-decoration-underline"
+                [routerLink]="link.path"
+                >{{ link.label }}</a
+              >
+            }
             <span class="navbar-text small d-none d-sm-inline">{{
               auth.user()?.name
             }}</span>
@@ -52,6 +62,12 @@ import { AuthStore } from './core/auth/auth.store';
 export class App {
   protected readonly auth = inject(AuthStore);
   private readonly router = inject(Router);
+
+  protected readonly links = [
+    { path: '/dashboard', label: 'Dashboard' },
+    { path: '/transfer', label: 'Transfer' },
+    { path: '/beneficiaries', label: 'Beneficiaries' },
+  ];
 
   async logout(): Promise<void> {
     await this.auth.logout();

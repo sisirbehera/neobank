@@ -22,6 +22,12 @@ import { TRANSACTION_TYPE_LABELS } from './labels';
               <div class="fw-medium text-truncate">
                 {{ entry.description || labels[entry.type] }}
               </div>
+              @if (entry.counterparty) {
+                <div class="small text-truncate">
+                  {{ entry.direction === 'DEBIT' ? 'To' : 'From' }}
+                  {{ entry.counterparty }}
+                </div>
+              }
               <small class="text-body-secondary">
                 {{ labels[entry.type] }} ·
                 {{ entry.createdAt | date: 'd MMM y, h:mm a' }}

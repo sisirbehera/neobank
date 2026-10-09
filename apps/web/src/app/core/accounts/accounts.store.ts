@@ -1,4 +1,4 @@
-import { computed, effect, inject, untracked } from '@angular/core';
+import { computed, inject } from '@angular/core';
 import {
   patchState,
   signalStore,
@@ -22,8 +22,8 @@ import {
   type OpenAccountRequest,
 } from '@neobank/shared/models';
 import { firstValueFrom } from 'rxjs';
-import { AuthStore } from '../auth/auth.store';
 import { toApiError } from '../http/api-error';
+import { resetOnUserChange } from '../state/reset-on-user-change';
 import { AccountsApi } from './accounts.api';
 
 /**
@@ -77,12 +77,18 @@ export const AccountsStore = signalStore(
         return account;
       },
 
-      deposit(id: string, request: MoneyMovementRequest) {
-        return move(firstValueFrom(api.deposit(id, request)));
+      /** `key` is the Idempotency-Key: reuse it when retrying the same deposit. */
+      deposit(id: string, request: MoneyMovementRequest, key: string) {
+        return move(firstValueFrom(api.deposit(id, request, key)));
       },
 
-      withdraw(id: string, request: MoneyMovementRequest) {
-        return move(firstValueFrom(api.withdraw(id, request)));
+      withdraw(id: string, request: MoneyMovementRequest, key: string) {
+        return move(firstValueFrom(api.withdraw(id, request, key)));
+      },
+
+      /** Replace one account with a fresher copy (e.g. after a transfer). */
+      setAccount(account: AccountDto): void {
+        patchState(store, setEntity(account));
       },
 
       reset(): void {
@@ -94,15 +100,5 @@ export const AccountsStore = signalStore(
       },
     };
   }),
-  withHooks({
-    onInit(store) {
-      // Never show one user's accounts to the next person who signs in.
-      const auth = inject(AuthStore);
-      const userId = computed(() => auth.user()?.id);
-      effect(() => {
-        userId();
-        untracked(() => store.reset());
-      });
-    },
-  }),
+  withHooks({ onInit: (store) => resetOnUserChange(store) }),
 );

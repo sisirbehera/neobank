@@ -27,16 +27,23 @@ describe('accounts API', () => {
   const open = (body: object = { type: 'SAVINGS' }, headers = auth) =>
     request(app).post('/api/accounts').set(headers).send(body);
 
-  const deposit = (id: string, amountPaise: number, headers = auth) =>
+  const deposit = (
+    id: string,
+    amountPaise: number,
+    headers = auth,
+    key = crypto.randomUUID(),
+  ) =>
     request(app)
       .post(`/api/accounts/${id}/deposit`)
       .set(headers)
+      .set('Idempotency-Key', key)
       .send({ amountPaise, description: 'Cash' });
 
   const withdraw = (id: string, amountPaise: number, headers = auth) =>
     request(app)
       .post(`/api/accounts/${id}/withdraw`)
       .set(headers)
+      .set('Idempotency-Key', crypto.randomUUID())
       .send({ amountPaise });
 
   it('requires authentication', async () => {
@@ -156,6 +163,28 @@ describe('accounts API', () => {
       [1_00_000_01, 'over ₹1,00,000'],
     ])('rejects an amount of %s (%s)', async (amountPaise) => {
       expect((await deposit(id, amountPaise)).status).toBe(400);
+    });
+
+    it('requires an Idempotency-Key', async () => {
+      const res = await request(app)
+        .post(`/api/accounts/${id}/deposit`)
+        .set(auth)
+        .send({ amountPaise: 100 });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.message).toContain('Idempotency-Key');
+    });
+
+    it('deposits only once when the same request is retried', async () => {
+      const key = crypto.randomUUID();
+
+      const first = await deposit(id, 5000, auth, key);
+      const retry = await deposit(id, 5000, auth, key);
+
+      expect(retry.status).toBe(200);
+      expect(retry.headers['idempotent-replayed']).toBe('true');
+      expect(retry.body).toEqual(first.body);
+      expect((await AccountModel.findById(id))?.balance).toBe(5000);
     });
 
     it('never overdraws under concurrent withdrawals', async () => {

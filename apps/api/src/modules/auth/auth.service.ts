@@ -12,6 +12,8 @@ import { generateRefreshToken, hashToken, signAccessToken } from './tokens';
 
 const MAX_FAILED_LOGINS = 5;
 const LOCK_MINUTES = 15;
+/** How long a just-rotated refresh token may still be used (lost responses). */
+export const REUSE_GRACE_MS = 30_000;
 
 export interface ClientMeta {
   userAgent?: string;
@@ -105,16 +107,31 @@ export class AuthService {
     // Atomically claim the token so it can only ever be used once.
     const claimed = await RefreshTokenModel.findOneAndUpdate(
       { tokenHash, revokedAt: { $exists: false }, expiresAt: { $gt: now } },
-      { $set: { revokedAt: now } },
+      { $set: { revokedAt: now, rotatedAt: now } },
     );
 
     if (!claimed) {
       const reused = await RefreshTokenModel.findOne({ tokenHash });
+
+      // Grace period: the browser can lose the response that carried the new
+      // cookie (tab closed, page reloaded mid-request, two tabs refreshing at
+      // once) and retry with the old one. Treat a very recent rotation as that,
+      // not as theft.
+      if (
+        reused?.rotatedAt &&
+        reused.expiresAt > now &&
+        now.getTime() - reused.rotatedAt.getTime() < REUSE_GRACE_MS
+      ) {
+        const user = await UserModel.findById(reused.userId);
+        if (user) return this.issueSession(user, meta);
+      }
+
       if (reused?.revokedAt) {
-        // A revoked token came back: assume it was stolen and end every session.
+        // A revoked token came back: assume it was stolen and end every
+        // session (also closing the grace period for recently rotated tokens).
         await RefreshTokenModel.updateMany(
-          { userId: reused.userId, revokedAt: { $exists: false } },
-          { $set: { revokedAt: now } },
+          { userId: reused.userId },
+          { $set: { revokedAt: now }, $unset: { rotatedAt: '' } },
         );
       }
       throw sessionExpired();

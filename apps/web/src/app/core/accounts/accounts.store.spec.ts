@@ -61,8 +61,10 @@ describe('AccountsStore', () => {
   it('updates one account after a deposit', async () => {
     await loadWith([account('a', 1000), account('b', 0)]);
 
-    const done = store.deposit('a', { amountPaise: 500 });
-    http.expectOne('/api/accounts/a/deposit').flush({
+    const done = store.deposit('a', { amountPaise: 500 }, 'key-12345678');
+    const req = http.expectOne('/api/accounts/a/deposit');
+    expect(req.request.headers.get('Idempotency-Key')).toBe('key-12345678');
+    req.flush({
       account: account('a', 1500),
       entry: {
         id: 'e1',
@@ -73,6 +75,7 @@ describe('AccountsStore', () => {
         amount: 500,
         balanceAfter: 1500,
         description: '',
+        counterparty: '',
         createdAt: new Date().toISOString(),
       },
     });

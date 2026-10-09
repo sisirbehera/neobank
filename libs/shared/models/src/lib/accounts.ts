@@ -71,6 +71,8 @@ export const LedgerEntryDtoSchema = z.object({
   amount: PaiseSchema,
   balanceAfter: PaiseSchema,
   description: z.string(),
+  /** Other side of a transfer, e.g. "Asha Rao · •••• 7897" (empty otherwise). */
+  counterparty: z.string(),
   createdAt: z.iso.datetime(),
 });
 export type LedgerEntryDto = z.infer<typeof LedgerEntryDtoSchema>;

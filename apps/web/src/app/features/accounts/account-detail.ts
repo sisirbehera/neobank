@@ -93,6 +93,15 @@ import { type MoneyAction, MoneyDialog } from './money-dialog';
             >
               Withdraw
             </button>
+            @if (account.status === 'ACTIVE' && account.balance > 0) {
+              <a
+                nbButton
+                variant="outline-primary"
+                routerLink="/transfer"
+                [queryParams]="{ from: account.id }"
+                >Transfer</a
+              >
+            }
           </div>
         </div>
       </section>

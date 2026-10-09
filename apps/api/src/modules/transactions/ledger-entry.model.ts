@@ -21,6 +21,8 @@ export interface LedgerEntry {
   /** Account balance right after this entry, in paise. */
   balanceAfter: number;
   description: string;
+  /** Other side of a transfer, e.g. "Asha Rao · •••• 7897". */
+  counterparty: string;
   createdAt: Date;
 }
 
@@ -43,6 +45,7 @@ const ledgerEntrySchema = new Schema<LedgerEntry>(
     amount: { type: Number, required: true, min: 1 },
     balanceAfter: { type: Number, required: true, min: 0 },
     description: { type: String, default: '' },
+    counterparty: { type: String, default: '' },
   },
   { timestamps: { createdAt: true, updatedAt: false } },
 );
@@ -65,6 +68,7 @@ export function toLedgerEntryDto(entry: LedgerEntryDocument): LedgerEntryDto {
     amount: entry.amount,
     balanceAfter: entry.balanceAfter,
     description: entry.description,
+    counterparty: entry.counterparty ?? '',
     createdAt: entry.createdAt.toISOString(),
   };
 }

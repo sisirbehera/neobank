@@ -9,6 +9,8 @@ import { clearTestDb, startTestDb, stopTestDb } from '../../test/test-db';
 import { testConfig } from '../../test/test-config';
 import { UserModel } from '../users/user.model';
 import { REFRESH_COOKIE } from './auth.routes';
+import { REUSE_GRACE_MS } from './auth.service';
+import { RefreshTokenModel } from './refresh-token.model';
 
 const user = {
   name: 'Asha Rao',
@@ -182,12 +184,37 @@ describe('auth API', () => {
     it('revokes every session when an old token is reused', async () => {
       const stolen = refreshCookie(await register());
       const current = refreshCookie(await refresh(stolen));
+      // Pretend the rotation happened a minute ago (outside the grace period).
+      await RefreshTokenModel.updateMany(
+        { rotatedAt: { $exists: true } },
+        { $set: { rotatedAt: new Date(Date.now() - REUSE_GRACE_MS - 1000) } },
+      );
 
       const replay = await refresh(stolen);
       expect(replay.status).toBe(401);
 
       // The legitimate, newer token has been revoked too.
       expect((await refresh(current)).status).toBe(401);
+    });
+
+    it('accepts a just-rotated token again (lost response), within the grace period', async () => {
+      const first = refreshCookie(await register());
+      const second = refreshCookie(await refresh(first));
+
+      // The browser never stored `second` and retries with `first`.
+      const retry = await refresh(first);
+
+      expect(retry.status).toBe(200);
+      expect(refreshCookie(retry)).not.toBe(second);
+      // Nothing was revoked: the other new token still works.
+      expect((await refresh(second)).status).toBe(200);
+    });
+
+    it('does not give a logged-out token a grace period', async () => {
+      const cookie = refreshCookie(await register());
+      await request(app).post('/api/auth/logout').set('Cookie', cookie);
+
+      expect((await refresh(cookie)).status).toBe(401);
     });
 
     it('returns 401 without a cookie', async () => {
@@ -224,5 +251,14 @@ describe('auth API', () => {
 
     expect(res.status).toBe(429);
     expect(errorCode(res)).toBe('TOO_MANY_REQUESTS');
+  });
+
+  it('gives refresh (called on every page load) a much higher limit', async () => {
+    const limited = createApp(testConfig({ rateLimit: 2 }));
+
+    for (let i = 0; i < 5; i++) {
+      const res = await request(limited).post('/api/auth/refresh');
+      expect(res.status).toBe(401); // no cookie, but not rate limited
+    }
   });
 });

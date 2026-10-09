@@ -7,6 +7,8 @@ import type { AppConfig } from './config/app-config';
 import { apiNotFound, errorHandler } from './middleware/error-handler';
 import { accountsRoutes } from './modules/accounts/accounts.routes';
 import { authRoutes } from './modules/auth/auth.routes';
+import { beneficiariesRoutes } from './modules/beneficiaries/beneficiaries.routes';
+import { transfersRoutes } from './modules/transfers/transfers.routes';
 import { healthRoutes } from './modules/health/health.routes';
 
 export function createApp(config: AppConfig) {
@@ -24,6 +26,8 @@ export function createApp(config: AppConfig) {
   api.use('/health', healthRoutes(config.version));
   api.use('/auth', authRoutes(config.auth));
   api.use('/accounts', accountsRoutes(config.auth.accessTokenSecret));
+  api.use('/beneficiaries', beneficiariesRoutes(config.auth.accessTokenSecret));
+  api.use('/transfers', transfersRoutes(config.auth.accessTokenSecret));
   api.use(apiNotFound);
   app.use('/api', api);
 

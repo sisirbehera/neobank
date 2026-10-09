@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import {
   type AccountDto,
   AccountDtoSchema,
+  IDEMPOTENCY_HEADER,
   type LedgerEntryDto,
   LedgerEntryDtoSchema,
   type MoneyMovementRequest,
@@ -28,12 +29,12 @@ export class AccountsApi {
       .pipe(map((res) => AccountDtoSchema.parse(res)));
   }
 
-  deposit(id: string, body: MoneyMovementRequest) {
-    return this.move(`/api/accounts/${id}/deposit`, body);
+  deposit(id: string, body: MoneyMovementRequest, idempotencyKey: string) {
+    return this.move(`/api/accounts/${id}/deposit`, body, idempotencyKey);
   }
 
-  withdraw(id: string, body: MoneyMovementRequest) {
-    return this.move(`/api/accounts/${id}/withdraw`, body);
+  withdraw(id: string, body: MoneyMovementRequest, idempotencyKey: string) {
+    return this.move(`/api/accounts/${id}/withdraw`, body, idempotencyKey);
   }
 
   /** Newest first. Without an account id: across all of the user's accounts. */
@@ -49,9 +50,12 @@ export class AccountsApi {
   private move(
     url: string,
     body: MoneyMovementRequest,
+    idempotencyKey: string,
   ): Observable<MoneyMovementResponse> {
     return this.http
-      .post<unknown>(url, body)
+      .post<unknown>(url, body, {
+        headers: { [IDEMPOTENCY_HEADER]: idempotencyKey },
+      })
       .pipe(map((res) => MoneyMovementResponseSchema.parse(res)));
   }
 }

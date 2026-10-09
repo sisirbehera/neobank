@@ -16,6 +16,8 @@ export interface Transaction {
   description: string;
   status: 'COMPLETED';
   initiatedBy: Types.ObjectId;
+  /** Transfer to someone else's account (counts towards the daily limit). */
+  isExternal: boolean;
   createdAt: Date;
 }
 
@@ -34,6 +36,7 @@ const transactionSchema = new Schema<Transaction>(
     description: { type: String, default: '' },
     status: { type: String, enum: ['COMPLETED'], default: 'COMPLETED' },
     initiatedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    isExternal: { type: Boolean, default: false },
   },
   { timestamps: { createdAt: true, updatedAt: false } },
 );

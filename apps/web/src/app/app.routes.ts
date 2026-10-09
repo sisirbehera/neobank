@@ -41,5 +41,21 @@ export const appRoutes: Route[] = [
     loadComponent: () =>
       import('./features/accounts/account-detail').then((m) => m.AccountDetail),
   },
+  {
+    path: 'transfer',
+    title: 'Transfer · NeoBank',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/transfers/transfer').then((m) => m.Transfer),
+  },
+  {
+    path: 'beneficiaries',
+    title: 'Beneficiaries · NeoBank',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/beneficiaries/beneficiaries').then(
+        (m) => m.Beneficiaries,
+      ),
+  },
   { path: '**', redirectTo: '' },
 ];

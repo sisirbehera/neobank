@@ -127,6 +127,14 @@ export class MoneyDialog {
   protected readonly pending = signal(false);
   protected readonly error = signal<string | null>(null);
 
+  /**
+   * One Idempotency-Key per dialog: if the response is lost and the user
+   * presses the button again, the API replays the first result instead of
+   * moving the money twice. (A failed request saves nothing, so retrying
+   * with a corrected amount is fine.)
+   */
+  private readonly idempotencyKey = crypto.randomUUID();
+
   protected readonly form = inject(FormBuilder).nonNullable.group({
     amount: [
       '',
@@ -161,8 +169,8 @@ export class MoneyDialog {
     try {
       const result =
         this.action() === 'deposit'
-          ? await this.store.deposit(account.id, request)
-          : await this.store.withdraw(account.id, request);
+          ? await this.store.deposit(account.id, request, this.idempotencyKey)
+          : await this.store.withdraw(account.id, request, this.idempotencyKey);
       this.activeModal.close(result);
     } catch (err) {
       this.error.set(toApiError(err).message);

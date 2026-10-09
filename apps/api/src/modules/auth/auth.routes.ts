@@ -29,20 +29,26 @@ export function authRoutes(config: AuthConfig): Router {
     path: '/api/auth', // only sent to the auth endpoints
   };
 
-  const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: config.rateLimit,
-    standardHeaders: 'draft-8',
-    legacyHeaders: false,
-    handler: (_req, _res, next) =>
-      next(
-        new HttpError(
-          429,
-          'TOO_MANY_REQUESTS',
-          'Too many attempts. Please wait a few minutes and try again.',
+  const limiter = (limit: number) =>
+    rateLimit({
+      windowMs: 15 * 60 * 1000,
+      limit,
+      standardHeaders: 'draft-8',
+      legacyHeaders: false,
+      handler: (_req, _res, next) =>
+        next(
+          new HttpError(
+            429,
+            'TOO_MANY_REQUESTS',
+            'Too many attempts. Please wait a few minutes and try again.',
+          ),
         ),
-      ),
-  });
+    });
+  // Strict for endpoints that check passwords (slows down guessing)...
+  const credentialsLimiter = limiter(config.rateLimit);
+  // ...generous for refresh, which every page load calls (users behind one
+  // shared IP, e.g. an office network, must not be logged out).
+  const refreshLimiter = limiter(config.rateLimit * 10);
 
   const meta = (req: Request): ClientMeta => ({
     userAgent: req.get('user-agent')?.slice(0, 200),
@@ -63,7 +69,7 @@ export function authRoutes(config: AuthConfig): Router {
 
   router.post(
     '/register',
-    limiter,
+    credentialsLimiter,
     validateBody(RegisterRequestSchema),
     async (req, res) => {
       sendSession(res, await auth.register(req.body, meta(req)), 201);
@@ -72,14 +78,14 @@ export function authRoutes(config: AuthConfig): Router {
 
   router.post(
     '/login',
-    limiter,
+    credentialsLimiter,
     validateBody(LoginRequestSchema),
     async (req, res) => {
       sendSession(res, await auth.login(req.body, meta(req)));
     },
   );
 
-  router.post('/refresh', limiter, async (req, res) => {
+  router.post('/refresh', refreshLimiter, async (req, res) => {
     try {
       sendSession(
         res,

@@ -5,22 +5,13 @@ import {
   OpenAccountRequestSchema,
 } from '@neobank/shared/models';
 import { HttpError } from '../../lib/http-error';
+import { param, userId } from '../../lib/request';
 import { requireAuth } from '../../middleware/auth';
+import { idempotencyKey, sendIdempotent } from '../../middleware/idempotency';
 import { validateBody } from '../../middleware/validate';
 import { AccountsService } from './accounts.service';
 
 const LimitSchema = z.coerce.number().int().min(1).max(50).default(10);
-
-/** The signed-in user's id (requireAuth guarantees it is set). */
-function userId(req: Request): string {
-  if (!req.auth) throw HttpError.unauthorized();
-  return req.auth.userId;
-}
-
-/** The :id route parameter (Express types it loosely once middleware is added). */
-function accountId(req: Request): string {
-  return String(req.params['id']);
-}
 
 function limit(req: Request): number {
   const result = LimitSchema.safeParse(req.query['limit']);
@@ -48,13 +39,13 @@ export function accountsRoutes(accessTokenSecret: string): Router {
   });
 
   router.get('/:id', async (req, res) => {
-    res.json(await accounts.get(userId(req), accountId(req)));
+    res.json(await accounts.get(userId(req), param(req, 'id')));
   });
 
   router.get('/:id/activity', async (req, res) => {
     res.json(
       await accounts.activity(userId(req), {
-        accountId: accountId(req),
+        accountId: param(req, 'id'),
         limit: limit(req),
       }),
     );
@@ -64,7 +55,11 @@ export function accountsRoutes(accessTokenSecret: string): Router {
     '/:id/deposit',
     validateBody(MoneyMovementRequestSchema),
     async (req, res) => {
-      res.json(await accounts.deposit(userId(req), accountId(req), req.body));
+      const key = idempotencyKey(req);
+      sendIdempotent(
+        res,
+        await accounts.deposit(userId(req), param(req, 'id'), req.body, key),
+      );
     },
   );
 
@@ -72,7 +67,11 @@ export function accountsRoutes(accessTokenSecret: string): Router {
     '/:id/withdraw',
     validateBody(MoneyMovementRequestSchema),
     async (req, res) => {
-      res.json(await accounts.withdraw(userId(req), accountId(req), req.body));
+      const key = idempotencyKey(req);
+      sendIdempotent(
+        res,
+        await accounts.withdraw(userId(req), param(req, 'id'), req.body, key),
+      );
     },
   );
 

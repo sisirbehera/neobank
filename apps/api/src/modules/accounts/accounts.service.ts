@@ -1,5 +1,5 @@
 import { randomInt } from 'node:crypto';
-import mongoose, { type ClientSession, isValidObjectId } from 'mongoose';
+import { isValidObjectId } from 'mongoose';
 import {
   type AccountDto,
   type LedgerEntryDto,
@@ -11,17 +11,25 @@ import {
 import { buildAccountNumber } from '@neobank/shared/utils';
 import type { z } from 'zod';
 import { HttpError } from '../../lib/http-error';
+import { isDuplicateKey } from '../../lib/mongo-errors';
+import {
+  type IdempotentOutcome,
+  runIdempotent,
+} from '../idempotency/idempotency';
 import {
   LedgerEntryModel,
   toLedgerEntryDto,
 } from '../transactions/ledger-entry.model';
+import {
+  accountNotFound,
+  creditOwnAccount,
+  debitOwnAccount,
+} from '../transactions/posting';
 import { TransactionModel } from '../transactions/transaction.model';
 import { AccountModel, toAccountDto } from './account.model';
 
 type OpenAccountInput = z.output<typeof OpenAccountRequestSchema>;
 type MovementInput = z.output<typeof MoneyMovementRequestSchema>;
-
-const accountNotFound = () => HttpError.notFound('Account not found');
 
 export class AccountsService {
   async list(userId: string): Promise<AccountDto[]> {
@@ -67,18 +75,28 @@ export class AccountsService {
         });
         return toAccountDto(account);
       } catch (err) {
-        if ((err as { code?: number }).code !== 11000) throw err;
+        if (!isDuplicateKey(err, 'accountNumber')) throw err;
       }
     }
     throw new Error('Could not generate a unique account number');
   }
 
-  deposit(userId: string, accountId: string, input: MovementInput) {
-    return this.move('DEPOSIT', userId, accountId, input);
+  deposit(
+    userId: string,
+    accountId: string,
+    input: MovementInput,
+    key: string,
+  ) {
+    return this.move('DEPOSIT', userId, accountId, input, key);
   }
 
-  withdraw(userId: string, accountId: string, input: MovementInput) {
-    return this.move('WITHDRAWAL', userId, accountId, input);
+  withdraw(
+    userId: string,
+    accountId: string,
+    input: MovementInput,
+    key: string,
+  ) {
+    return this.move('WITHDRAWAL', userId, accountId, input, key);
   }
 
   /** Newest ledger entries across the user's accounts, or for one account. */
@@ -103,82 +121,61 @@ export class AccountsService {
 
   /**
    * Deposit or withdrawal. The balance update, the transaction and the ledger
-   * entry are written in ONE MongoDB transaction: either all of them are
-   * saved, or none are.
+   * entry are written in ONE MongoDB transaction (inside runIdempotent):
+   * either all of them are saved, or none are.
    */
   private async move(
     type: 'DEPOSIT' | 'WITHDRAWAL',
     userId: string,
     accountId: string,
-    { amountPaise, description }: MovementInput,
-  ): Promise<MoneyMovementResponse> {
+    input: MovementInput,
+    key: string,
+  ): Promise<IdempotentOutcome<MoneyMovementResponse>> {
     if (!isValidObjectId(accountId)) throw accountNotFound();
     const isDeposit = type === 'DEPOSIT';
+    const { amountPaise, description } = input;
 
-    return mongoose.connection.transaction(async (session) => {
-      // The filter is the safety check: a withdrawal only matches when the
-      // balance is high enough, so concurrent withdrawals can never overdraw.
-      const account = await AccountModel.findOneAndUpdate(
-        {
-          _id: accountId,
-          userId,
-          status: 'ACTIVE',
-          ...(isDeposit ? {} : { balance: { $gte: amountPaise } }),
-        },
-        { $inc: { balance: isDeposit ? amountPaise : -amountPaise } },
-        { returnDocument: 'after', session },
-      );
-      if (!account) throw await this.whyNotMoved(userId, accountId, session);
+    return runIdempotent(
+      { userId, key, scope: `${type}:${accountId}`, request: input },
+      async (session) => {
+        const posting = { accountId, userId, amount: amountPaise };
+        const account = isDeposit
+          ? await creditOwnAccount(session, posting)
+          : await debitOwnAccount(session, posting);
 
-      const [transaction] = await TransactionModel.create(
-        [
-          {
-            type,
-            [isDeposit ? 'toAccountId' : 'fromAccountId']: account._id,
-            amount: amountPaise,
-            description,
-            initiatedBy: userId,
-          },
-        ],
-        { session },
-      );
+        const [transaction] = await TransactionModel.create(
+          [
+            {
+              type,
+              [isDeposit ? 'toAccountId' : 'fromAccountId']: account._id,
+              amount: amountPaise,
+              description,
+              initiatedBy: userId,
+            },
+          ],
+          { session },
+        );
 
-      const [entry] = await LedgerEntryModel.create(
-        [
-          {
-            transactionId: transaction._id,
-            accountId: account._id,
-            type,
-            direction: isDeposit ? 'CREDIT' : 'DEBIT',
-            amount: amountPaise,
-            balanceAfter: account.balance,
-            description,
-          },
-        ],
-        { session },
-      );
+        const [entry] = await LedgerEntryModel.create(
+          [
+            {
+              transactionId: transaction._id,
+              accountId: account._id,
+              type,
+              direction: isDeposit ? 'CREDIT' : 'DEBIT',
+              amount: amountPaise,
+              balanceAfter: account.balance,
+              description,
+            },
+          ],
+          { session },
+        );
 
-      return { account: toAccountDto(account), entry: toLedgerEntryDto(entry) };
-    });
-  }
-
-  private async whyNotMoved(
-    userId: string,
-    accountId: string,
-    session: ClientSession,
-  ): Promise<HttpError> {
-    const account = await AccountModel.findOne({
-      _id: accountId,
-      userId,
-    }).session(session);
-
-    if (!account) return accountNotFound();
-    if (account.status !== 'ACTIVE') {
-      return HttpError.conflict(
-        `This account is ${account.status.toLowerCase()}`,
-        'ACCOUNT_NOT_ACTIVE',
-      );
-    }
-    return new HttpError(422, 'INSUFFICIENT_FUNDS', 'Insufficient funds');
+        return {
+          account: toAccountDto(account),
+          entry: toLedgerEntryDto(entry),
+        };
+      },
+    );
   }
 }
