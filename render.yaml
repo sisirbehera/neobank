@@ -1,0 +1,19 @@
+# Render Blueprint – https://render.com/docs/blueprint-spec
+# In Render: New + → Blueprint → pick this repo. You'll be asked for MONGODB_URI.
+services:
+  - type: web
+    name: neobank
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false # secret – entered in the Render dashboard (Atlas connection string)
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true

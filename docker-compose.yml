@@ -1,0 +1,24 @@
+# Optional: a persistent local MongoDB (single-node replica set, so transactions work).
+# Without Docker, leave MONGODB_URI empty and the API starts an in-memory MongoDB.
+#
+#   docker compose up -d
+#   MONGODB_URI=mongodb://localhost:27017/neobank?replicaSet=rs0&directConnection=true
+services:
+  mongo:
+    image: mongo:8
+    command: ['--replSet', 'rs0', '--bind_ip_all']
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      # Initiates the replica set on first start, then just reports status.
+      test: >
+        mongosh --quiet --eval "try { rs.status().ok } catch (e) {
+        rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27017' }] }).ok }"
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+volumes:
+  mongo-data:

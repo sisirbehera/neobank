@@ -1,0 +1,94 @@
+// NeoBank themes.
+//
+// Each theme only sets --nb-* brand tokens. The mapping section below wires
+// those tokens into Bootstrap's CSS variables, so every Bootstrap component
+// (and every nb-* wrapper) follows the active theme.
+//
+// To add a theme: add a block here and an entry in THEMES (theme.service.ts).
+
+:root,
+[data-nb-theme='light'] {
+  --nb-primary: #0b5ed7;
+  --nb-primary-rgb: 11, 94, 215;
+  --nb-primary-hover: #094db1;
+  --nb-navbar-bg: #0a3d8f;
+}
+
+[data-nb-theme='dark'] {
+  --nb-primary: #4d94ff;
+  --nb-primary-rgb: 77, 148, 255;
+  --nb-primary-hover: #6ea8fe;
+  --nb-navbar-bg: #161a1f;
+}
+
+[data-nb-theme='emerald'] {
+  --nb-primary: #0f7b5f;
+  --nb-primary-rgb: 15, 123, 95;
+  --nb-primary-hover: #0c6650;
+  --nb-navbar-bg: #0b4f3e;
+  --bs-body-bg: #f3faf7;
+  --bs-tertiary-bg: #e3f3ec;
+}
+
+// ---- Map brand tokens onto Bootstrap ----------------------------------------
+
+:root[data-nb-theme] {
+  --bs-primary: var(--nb-primary);
+  --bs-primary-rgb: var(--nb-primary-rgb);
+  --bs-link-color: var(--nb-primary);
+  --bs-link-color-rgb: var(--nb-primary-rgb);
+  --bs-link-hover-color: var(--nb-primary-hover);
+  --bs-link-hover-color-rgb: var(--nb-primary-rgb);
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--nb-primary);
+  --bs-btn-border-color: var(--nb-primary);
+  --bs-btn-hover-bg: var(--nb-primary-hover);
+  --bs-btn-hover-border-color: var(--nb-primary-hover);
+  --bs-btn-active-bg: var(--nb-primary-hover);
+  --bs-btn-active-border-color: var(--nb-primary-hover);
+  --bs-btn-disabled-bg: var(--nb-primary);
+  --bs-btn-disabled-border-color: var(--nb-primary);
+  --bs-btn-focus-shadow-rgb: var(--nb-primary-rgb);
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--nb-primary);
+  --bs-btn-border-color: var(--nb-primary);
+  --bs-btn-hover-bg: var(--nb-primary);
+  --bs-btn-hover-border-color: var(--nb-primary);
+  --bs-btn-active-bg: var(--nb-primary);
+  --bs-btn-active-border-color: var(--nb-primary);
+  --bs-btn-disabled-color: var(--nb-primary);
+  --bs-btn-disabled-border-color: var(--nb-primary);
+  --bs-btn-focus-shadow-rgb: var(--nb-primary-rgb);
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: rgba(var(--nb-primary-rgb), 0.5);
+  box-shadow: 0 0 0 0.25rem rgba(var(--nb-primary-rgb), 0.25);
+}
+
+.form-check-input:checked {
+  background-color: var(--nb-primary);
+  border-color: var(--nb-primary);
+}
+
+.dropdown-menu {
+  --bs-dropdown-link-active-bg: var(--nb-primary);
+}
+
+.nav-pills {
+  --bs-nav-pills-link-active-bg: var(--nb-primary);
+}
+
+.pagination {
+  --bs-pagination-active-bg: var(--nb-primary);
+  --bs-pagination-active-border-color: var(--nb-primary);
+}
+
+.nb-navbar {
+  background-color: var(--nb-navbar-bg);
+}

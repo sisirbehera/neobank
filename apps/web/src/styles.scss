@@ -1,0 +1,16 @@
+// Bootstrap CSS is loaded first (see project.json "styles").
+// Theme tokens come from libs/web/ui/src/lib/styles (stylePreprocessorOptions).
+@use 'themes';
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background-color: var(--bs-body-bg);
+}
+
+.nb-page {
+  padding-block: 2rem;
+}
