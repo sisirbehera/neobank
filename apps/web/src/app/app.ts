@@ -1,4 +1,9 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+} from '@angular/core';
 import {
   Router,
   RouterLink,
@@ -19,7 +24,7 @@ import { AuthStore } from './core/auth/auth.store';
 
         <div class="d-flex align-items-center flex-wrap gap-2">
           @if (auth.isAuthenticated()) {
-            @for (link of links; track link.path) {
+            @for (link of links(); track link.path) {
               <a
                 class="btn btn-sm btn-link text-white text-decoration-none"
                 routerLinkActive="fw-semibold text-decoration-underline"
@@ -63,11 +68,13 @@ export class App {
   protected readonly auth = inject(AuthStore);
   private readonly router = inject(Router);
 
-  protected readonly links = [
+  protected readonly links = computed(() => [
     { path: '/dashboard', label: 'Dashboard' },
+    { path: '/transactions', label: 'Transactions' },
     { path: '/transfer', label: 'Transfer' },
     { path: '/beneficiaries', label: 'Beneficiaries' },
-  ];
+    ...(this.auth.isAdmin() ? [{ path: '/admin', label: 'Admin' }] : []),
+  ]);
 
   async logout(): Promise<void> {
     await this.auth.logout();

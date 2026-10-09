@@ -1,13 +1,29 @@
 import 'dotenv/config';
 import { createApp } from './app';
 import { connectDb } from './config/db';
-import { loadEnv, toAppConfig } from './config/env';
+import { adminCredentials, loadEnv, toAppConfig } from './config/env';
+import { DEMO_USERS, ensureAdmin, seedDemoData } from './seed/demo-data';
 
 async function bootstrap() {
   const env = loadEnv();
+  const config = toAppConfig(env);
   const db = await connectDb(env.MONGODB_URI);
-  const app = createApp(toAppConfig(env));
 
+  if (config.demoDataEnabled) {
+    await seedDemoData();
+    console.log(
+      `[seed] demo login: ${DEMO_USERS.demo.email} / ${DEMO_USERS.demo.password}`,
+    );
+  }
+  const admin = adminCredentials(env);
+  if (admin) {
+    await ensureAdmin(admin.email, admin.password);
+    if (env.NODE_ENV === 'development') {
+      console.log(`[seed] admin login: ${admin.email} / ${admin.password}`);
+    }
+  }
+
+  const app = createApp(config);
   const server = app.listen(env.PORT, env.HOST, () => {
     console.log(
       `[api] ready on http://${env.HOST}:${env.PORT} (${env.NODE_ENV})`,

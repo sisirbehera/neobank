@@ -5,10 +5,12 @@ import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import type { AppConfig } from './config/app-config';
 import { apiNotFound, errorHandler } from './middleware/error-handler';
+import { adminRoutes } from './modules/admin/admin.routes';
 import { accountsRoutes } from './modules/accounts/accounts.routes';
 import { authRoutes } from './modules/auth/auth.routes';
 import { beneficiariesRoutes } from './modules/beneficiaries/beneficiaries.routes';
 import { transfersRoutes } from './modules/transfers/transfers.routes';
+import { historyRoutes } from './modules/history/history.routes';
 import { healthRoutes } from './modules/health/health.routes';
 
 export function createApp(config: AppConfig) {
@@ -23,11 +25,19 @@ export function createApp(config: AppConfig) {
   app.use(cookieParser());
 
   const api = Router();
-  api.use('/health', healthRoutes(config.version));
+  api.use('/health', healthRoutes(config.version, config.demoDataEnabled));
   api.use('/auth', authRoutes(config.auth));
   api.use('/accounts', accountsRoutes(config.auth.accessTokenSecret));
   api.use('/beneficiaries', beneficiariesRoutes(config.auth.accessTokenSecret));
   api.use('/transfers', transfersRoutes(config.auth.accessTokenSecret));
+  api.use('/transactions', historyRoutes(config.auth.accessTokenSecret));
+  api.use(
+    '/admin',
+    adminRoutes({
+      accessTokenSecret: config.auth.accessTokenSecret,
+      demoDataEnabled: config.demoDataEnabled,
+    }),
+  );
   api.use(apiNotFound);
   app.use('/api', api);
 

@@ -1,22 +1,49 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import type { LedgerEntryDto } from '@neobank/shared/models';
-import { AccountNumberPipe, Button, Card, InrPipe } from '@neobank/web/ui';
+import type { LedgerEntryDto, MonthlySummary } from '@neobank/shared/models';
+import { formatInr, formatInrCompact } from '@neobank/shared/utils';
+import {
+  AccountNumberPipe,
+  Button,
+  Card,
+  ColumnChart,
+  InrPipe,
+} from '@neobank/web/ui';
 import { firstValueFrom } from 'rxjs';
 import { AccountsApi } from '../../core/accounts/accounts.api';
 import { AccountsStore } from '../../core/accounts/accounts.store';
 import { AuthStore } from '../../core/auth/auth.store';
+import { HistoryApi } from '../../core/history/history.api';
 import { ActivityList } from '../accounts/activity-list';
 import { ACCOUNT_TYPE_LABELS } from '../accounts/labels';
 
+const SHORT_MONTH = new Intl.DateTimeFormat('en-IN', {
+  month: 'short',
+  timeZone: 'Asia/Kolkata',
+});
+const LONG_MONTH = new Intl.DateTimeFormat('en-IN', {
+  month: 'long',
+  year: 'numeric',
+  timeZone: 'Asia/Kolkata',
+});
+
 @Component({
   selector: 'nb-dashboard',
-  imports: [RouterLink, Card, Button, InrPipe, AccountNumberPipe, ActivityList],
+  imports: [
+    RouterLink,
+    Card,
+    Button,
+    InrPipe,
+    AccountNumberPipe,
+    ActivityList,
+    ColumnChart,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header
@@ -98,17 +125,40 @@ import { ACCOUNT_TYPE_LABELS } from '../accounts/labels';
         }
       </div>
 
-      <nb-card title="Recent activity">
-        <nb-activity-list
-          [entries]="activity()"
-          [accounts]="accounts.entityMap()"
-        />
-      </nb-card>
+      <div class="row g-4">
+        <div class="col-12 col-xl-7">
+          <nb-card
+            title="Money in and out"
+            subtitle="Last 6 months · transfers between your own accounts excluded"
+          >
+            @if (chart(); as c) {
+              <nb-column-chart
+                caption="Money in and money out per month, last 6 months"
+                [categories]="c.categories"
+                [series]="c.series"
+                [format]="formatInr"
+                [formatTick]="formatInrCompact"
+              />
+            } @else {
+              <p class="text-body-secondary mb-0">Loading…</p>
+            }
+          </nb-card>
+        </div>
+        <div class="col-12 col-xl-5">
+          <nb-card title="Recent activity">
+            <a cardActions class="small" routerLink="/transactions">View all</a>
+            <nb-activity-list
+              [entries]="activity()"
+              [accounts]="accounts.entityMap()"
+            />
+          </nb-card>
+        </div>
+      </div>
     }
   `,
   styles: `
     .nb-total {
-      background: var(--nb-primary);
+      background: var(--nb-primary-solid);
       color: #fff;
     }
     .nb-account-card {
@@ -127,13 +177,45 @@ export class Dashboard {
   protected readonly accounts = inject(AccountsStore);
   private readonly api = inject(AccountsApi);
 
+  private readonly historyApi = inject(HistoryApi);
+
   protected readonly typeLabels = ACCOUNT_TYPE_LABELS;
   protected readonly activity = signal<LedgerEntryDto[]>([]);
+  protected readonly formatInr = formatInr;
+  protected readonly formatInrCompact = formatInrCompact;
+
+  private readonly summary = signal<MonthlySummary | null>(null);
+  protected readonly chart = computed(() => {
+    const months = this.summary();
+    if (!months) return null;
+    return {
+      categories: months.map(({ month }) => {
+        const date = new Date(`${month}-15T12:00:00+05:30`);
+        return {
+          label: SHORT_MONTH.format(date),
+          title: LONG_MONTH.format(date),
+        };
+      }),
+      series: [
+        { label: 'Money in', values: months.map((m) => m.inPaise) },
+        { label: 'Money out', values: months.map((m) => m.outPaise) },
+      ],
+    };
+  });
 
   constructor() {
     // Always refresh balances when the dashboard opens.
     void this.accounts.load(true);
     void this.loadActivity();
+    void this.loadSummary();
+  }
+
+  private async loadSummary(): Promise<void> {
+    try {
+      this.summary.set(await firstValueFrom(this.historyApi.summary()));
+    } catch {
+      // The chart is optional; the rest of the dashboard still works.
+    }
   }
 
   private async loadActivity(): Promise<void> {

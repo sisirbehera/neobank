@@ -3,6 +3,10 @@ import type { AppConfig } from './app-config';
 
 const DEV_ACCESS_SECRET = 'dev-only-access-secret-do-not-use-in-production';
 
+/** `KEY=` (empty, e.g. copied from .env.example) means "not set". */
+const unset = <T extends z.ZodType>(schema: T) =>
+  z.preprocess((v) => (v === '' ? undefined : v), schema.optional());
+
 const EnvSchema = z
   .object({
     NODE_ENV: z
@@ -21,6 +25,14 @@ const EnvSchema = z
     REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(7),
     /** Max login/register/refresh requests per IP per 15 minutes. */
     AUTH_RATE_LIMIT: z.coerce.number().int().positive().default(20),
+    /** Seed demo users with history. Defaults to on in development only. */
+    SEED_DEMO_DATA: unset(z.enum(['true', 'false'])),
+    ADMIN_EMAIL: z.preprocess(
+      (v) => (v === '' ? undefined : v),
+      z.email().default('admin@neobank.dev'),
+    ),
+    /** Creates the admin user on startup. Without it (in production) there is no admin. */
+    ADMIN_PASSWORD: unset(z.string().min(8)),
   })
   .refine((env) => env.NODE_ENV !== 'production' || !!env.MONGODB_URI, {
     message: 'MONGODB_URI is required in production',
@@ -60,5 +72,18 @@ export function toAppConfig(env: Env): AppConfig {
       secureCookies: env.NODE_ENV === 'production',
       rateLimit: env.AUTH_RATE_LIMIT,
     },
+    demoDataEnabled: env.SEED_DEMO_DATA
+      ? env.SEED_DEMO_DATA === 'true'
+      : env.NODE_ENV === 'development',
   };
+}
+
+/** Admin login to create on startup, if any. Development gets a known default. */
+export function adminCredentials(
+  env: Env,
+): { email: string; password: string } | null {
+  const password =
+    env.ADMIN_PASSWORD ??
+    (env.NODE_ENV === 'development' ? 'Admin@1234' : undefined);
+  return password ? { email: env.ADMIN_EMAIL, password } : null;
 }

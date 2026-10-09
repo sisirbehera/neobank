@@ -1,5 +1,5 @@
 import { Route } from '@angular/router';
-import { authGuard, guestGuard } from './core/auth/auth.guards';
+import { adminGuard, authGuard, guestGuard } from './core/auth/auth.guards';
 
 export const appRoutes: Route[] = [
   {
@@ -56,6 +56,51 @@ export const appRoutes: Route[] = [
       import('./features/beneficiaries/beneficiaries').then(
         (m) => m.Beneficiaries,
       ),
+  },
+  {
+    path: 'transactions',
+    title: 'Transactions · NeoBank',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/history/history').then((m) => m.History),
+  },
+  {
+    path: 'admin',
+    canActivate: [authGuard, adminGuard],
+    loadComponent: () =>
+      import('./features/admin/admin-shell').then((m) => m.AdminShell),
+    children: [
+      {
+        path: '',
+        title: 'Admin · NeoBank',
+        loadComponent: () =>
+          import('./features/admin/admin-overview').then(
+            (m) => m.AdminOverview,
+          ),
+      },
+      {
+        path: 'users',
+        title: 'Users · Admin · NeoBank',
+        loadComponent: () =>
+          import('./features/admin/admin-users').then((m) => m.AdminUsers),
+      },
+      {
+        path: 'users/:id',
+        title: 'User · Admin · NeoBank',
+        loadComponent: () =>
+          import('./features/admin/admin-user-detail').then(
+            (m) => m.AdminUserDetailPage,
+          ),
+      },
+      {
+        path: 'transactions',
+        title: 'Transactions · Admin · NeoBank',
+        loadComponent: () =>
+          import('./features/admin/admin-transactions').then(
+            (m) => m.AdminTransactions,
+          ),
+      },
+    ],
   },
   { path: '**', redirectTo: '' },
 ];

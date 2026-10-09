@@ -4,27 +4,39 @@
 // those tokens into Bootstrap's CSS variables, so every Bootstrap component
 // (and every nb-* wrapper) follows the active theme.
 //
-// To add a theme: add a block here and an entry in THEMES (theme.service.ts).
+// Two primary tokens, because one colour can't do both jobs in dark mode:
+//   --nb-primary        text, links, outlines (must read on the page background)
+//   --nb-primary-solid  filled buttons, badges, the balance card (white text on it
+//                       must reach WCAG AA 4.5:1)
+//
+// To add a theme: add a block here and an entry in THEMES (theme.service.ts),
+// and check both contrasts.
 
 :root,
 [data-nb-theme='light'] {
-  --nb-primary: #0b5ed7;
+  --nb-primary: #0b5ed7; // 5.84:1 on white
   --nb-primary-rgb: 11, 94, 215;
   --nb-primary-hover: #094db1;
+  --nb-primary-solid: #0b5ed7; // white text 5.84:1
+  --nb-primary-solid-hover: #094db1;
   --nb-navbar-bg: #0a3d8f;
 }
 
 [data-nb-theme='dark'] {
-  --nb-primary: #4d94ff;
+  --nb-primary: #4d94ff; // 5.14:1 on #212529
   --nb-primary-rgb: 77, 148, 255;
   --nb-primary-hover: #6ea8fe;
+  --nb-primary-solid: #1f6fd1; // white text 4.94:1
+  --nb-primary-solid-hover: #1a5fb4;
   --nb-navbar-bg: #161a1f;
 }
 
 [data-nb-theme='emerald'] {
-  --nb-primary: #0f7b5f;
+  --nb-primary: #0f7b5f; // 4.93:1 on #f3faf7
   --nb-primary-rgb: 15, 123, 95;
   --nb-primary-hover: #0c6650;
+  --nb-primary-solid: #0f7b5f; // white text 5.23:1
+  --nb-primary-solid-hover: #0c6650;
   --nb-navbar-bg: #0b4f3e;
   --bs-body-bg: #f3faf7;
   --bs-tertiary-bg: #e3f3ec;
@@ -42,24 +54,24 @@
 }
 
 .btn-primary {
-  --bs-btn-bg: var(--nb-primary);
-  --bs-btn-border-color: var(--nb-primary);
-  --bs-btn-hover-bg: var(--nb-primary-hover);
-  --bs-btn-hover-border-color: var(--nb-primary-hover);
-  --bs-btn-active-bg: var(--nb-primary-hover);
-  --bs-btn-active-border-color: var(--nb-primary-hover);
-  --bs-btn-disabled-bg: var(--nb-primary);
-  --bs-btn-disabled-border-color: var(--nb-primary);
+  --bs-btn-bg: var(--nb-primary-solid);
+  --bs-btn-border-color: var(--nb-primary-solid);
+  --bs-btn-hover-bg: var(--nb-primary-solid-hover);
+  --bs-btn-hover-border-color: var(--nb-primary-solid-hover);
+  --bs-btn-active-bg: var(--nb-primary-solid-hover);
+  --bs-btn-active-border-color: var(--nb-primary-solid-hover);
+  --bs-btn-disabled-bg: var(--nb-primary-solid);
+  --bs-btn-disabled-border-color: var(--nb-primary-solid);
   --bs-btn-focus-shadow-rgb: var(--nb-primary-rgb);
 }
 
 .btn-outline-primary {
   --bs-btn-color: var(--nb-primary);
   --bs-btn-border-color: var(--nb-primary);
-  --bs-btn-hover-bg: var(--nb-primary);
-  --bs-btn-hover-border-color: var(--nb-primary);
-  --bs-btn-active-bg: var(--nb-primary);
-  --bs-btn-active-border-color: var(--nb-primary);
+  --bs-btn-hover-bg: var(--nb-primary-solid);
+  --bs-btn-hover-border-color: var(--nb-primary-solid);
+  --bs-btn-active-bg: var(--nb-primary-solid);
+  --bs-btn-active-border-color: var(--nb-primary-solid);
   --bs-btn-disabled-color: var(--nb-primary);
   --bs-btn-disabled-border-color: var(--nb-primary);
   --bs-btn-focus-shadow-rgb: var(--nb-primary-rgb);
@@ -72,21 +84,21 @@
 }
 
 .form-check-input:checked {
-  background-color: var(--nb-primary);
-  border-color: var(--nb-primary);
+  background-color: var(--nb-primary-solid);
+  border-color: var(--nb-primary-solid);
 }
 
 .dropdown-menu {
-  --bs-dropdown-link-active-bg: var(--nb-primary);
+  --bs-dropdown-link-active-bg: var(--nb-primary-solid);
 }
 
 .nav-pills {
-  --bs-nav-pills-link-active-bg: var(--nb-primary);
+  --bs-nav-pills-link-active-bg: var(--nb-primary-solid);
 }
 
 .pagination {
-  --bs-pagination-active-bg: var(--nb-primary);
-  --bs-pagination-active-border-color: var(--nb-primary);
+  --bs-pagination-active-bg: var(--nb-primary-solid);
+  --bs-pagination-active-border-color: var(--nb-primary-solid);
 }
 
 .nb-navbar {

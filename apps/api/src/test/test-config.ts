@@ -15,5 +15,6 @@ export function testConfig(
       rateLimit: 1000,
       ...overrides,
     },
+    demoDataEnabled: true,
   };
 }

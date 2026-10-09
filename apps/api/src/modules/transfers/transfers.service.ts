@@ -140,6 +140,7 @@ export class TransfersService {
               balanceAfter: debited.balance,
               description: input.description,
               counterparty: toLabel,
+              internal: isOwn,
             },
             {
               transactionId: transaction._id,
@@ -150,6 +151,7 @@ export class TransfersService {
               balanceAfter: credited.balance,
               description: input.description,
               counterparty: fromLabel,
+              internal: isOwn,
             },
           ],
           { session, ordered: true },

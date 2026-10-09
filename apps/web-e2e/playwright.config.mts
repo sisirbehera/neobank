@@ -35,6 +35,9 @@ export default defineConfig({
     url: 'http://localhost:4200',
     reuseExistingServer: true,
     cwd: workspaceRoot,
+    // Every test logs in from the same IP; don't let the login rate limit
+    // (meant for real users) fail the suite.
+    env: { AUTH_RATE_LIMIT: '1000' },
   },
   projects: [
     {

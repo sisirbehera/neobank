@@ -107,6 +107,13 @@ import { type MoneyAction, MoneyDialog } from './money-dialog';
       </section>
 
       <nb-card title="Recent activity">
+        <a
+          cardActions
+          class="small"
+          routerLink="/transactions"
+          [queryParams]="{ accountId: account.id }"
+          >View all</a
+        >
         @if (activityError(); as error) {
           <div class="alert alert-danger mb-0">{{ error }}</div>
         } @else {

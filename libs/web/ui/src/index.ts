@@ -7,3 +7,4 @@ export * from './lib/forms/input';
 export * from './lib/forms/validators';
 export * from './lib/theme/theme-switcher';
 export * from './lib/theme/theme.service';
+export * from './lib/chart/column-chart';

@@ -7,6 +7,7 @@ describe('HealthResponseSchema', () => {
     uptimeSeconds: 12.5,
     timestamp: new Date().toISOString(),
     version: '0.0.0',
+    demoMode: false,
   };
 
   it('accepts a valid health payload', () => {

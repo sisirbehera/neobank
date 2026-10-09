@@ -24,6 +24,7 @@ describe('SystemStatusStore', () => {
     uptimeSeconds: 5,
     timestamp: new Date().toISOString(),
     version: '0.0.0',
+    demoMode: false,
   };
 
   it('loads health on init', () => {

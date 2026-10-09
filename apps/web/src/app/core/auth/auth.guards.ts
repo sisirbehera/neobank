@@ -26,3 +26,11 @@ export function safeReturnUrl(url: string | null | undefined): string {
     ? url
     : '/dashboard';
 }
+
+/** Admin pages. Customers are sent back to their dashboard. */
+export const adminGuard: CanActivateFn = () => {
+  const router = inject(Router);
+  return inject(AuthStore).isAdmin()
+    ? true
+    : router.createUrlTree(['/dashboard']);
+};

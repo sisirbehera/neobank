@@ -14,4 +14,6 @@ export interface AppConfig {
   /** Folder with the built Angular app; skipped if it doesn't exist. */
   staticDir?: string;
   auth: AuthConfig;
+  /** Demo users + history are seeded, and admins may reset them. */
+  demoDataEnabled: boolean;
 }

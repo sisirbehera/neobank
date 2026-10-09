@@ -23,6 +23,8 @@ export interface LedgerEntry {
   description: string;
   /** Other side of a transfer, e.g. "Asha Rao · •••• 7897". */
   counterparty: string;
+  /** Transfer between two accounts of the same user (not real spending). */
+  internal: boolean;
   createdAt: Date;
 }
 
@@ -46,6 +48,7 @@ const ledgerEntrySchema = new Schema<LedgerEntry>(
     balanceAfter: { type: Number, required: true, min: 0 },
     description: { type: String, default: '' },
     counterparty: { type: String, default: '' },
+    internal: { type: Boolean, default: false },
   },
   { timestamps: { createdAt: true, updatedAt: false } },
 );

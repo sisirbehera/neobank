@@ -14,3 +14,13 @@ export function formatInr(paise: number): string {
 export function rupeesToPaise(rupees: number): number {
   return Math.round(rupees * 100);
 }
+
+const compactFormatter = new Intl.NumberFormat('en-IN', {
+  notation: 'compact',
+  maximumFractionDigits: 1,
+});
+
+/** Short rupee amounts for chart axes: 8500000 paise → "₹85K", 1.2 lakh → "₹1.2L". */
+export function formatInrCompact(paise: number): string {
+  return `₹${compactFormatter.format(paise / 100)}`;
+}

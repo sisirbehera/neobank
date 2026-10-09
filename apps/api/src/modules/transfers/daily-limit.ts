@@ -2,10 +2,9 @@ import type { ClientSession } from 'mongoose';
 import { DAILY_EXTERNAL_TRANSFER_LIMIT_PAISE } from '@neobank/shared/models';
 import { formatInr } from '@neobank/shared/utils';
 import { HttpError } from '../../lib/http-error';
+import { istDay } from '../../lib/ist';
 import { isDuplicateKey } from '../../lib/mongo-errors';
 import { DailyTransferUsageModel } from './daily-limit.model';
-
-const istDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' });
 
 /**
  * Adds `amount` to today's usage, or throws if that would exceed the limit.
@@ -27,7 +26,7 @@ export async function consumeDailyLimit(
     await DailyTransferUsageModel.updateOne(
       {
         userId,
-        day: istDay.format(new Date()),
+        day: istDay(),
         usedPaise: { $lte: limit - amount },
       },
       {

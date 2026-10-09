@@ -2,7 +2,7 @@ import { Router } from 'express';
 import type { HealthResponse } from '@neobank/shared/models';
 import { isDbConnected } from '../../config/db';
 
-export function healthRoutes(version: string): Router {
+export function healthRoutes(version: string, demoMode = false): Router {
   const router = Router();
 
   router.get('/', (_req, res) => {
@@ -13,6 +13,7 @@ export function healthRoutes(version: string): Router {
       uptimeSeconds: Math.round(process.uptime()),
       timestamp: new Date().toISOString(),
       version,
+      demoMode,
     };
     // 503 lets Render's health check restart the service if the DB is unreachable.
     res.status(dbUp ? 200 : 503).json(body);

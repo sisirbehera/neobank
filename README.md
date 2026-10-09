@@ -38,6 +38,16 @@ npm start            # Angular on http://localhost:4200 + API on :3333
 
 No database setup is needed. If `MONGODB_URI` is empty, the API starts an **in-memory MongoDB replica set**, and its data resets when the API restarts. For persistent local data, run `docker compose up -d` and set `MONGODB_URI` in `.env` (see `.env.example`).
 
+In development the API seeds these logins on every start:
+
+| Who                    | Email               | Password     |
+| ---------------------- | ------------------- | ------------ |
+| Demo customer (Priya)  | `demo@neobank.dev`  | `Demo@1234`  |
+| Second customer (Ravi) | `ravi@neobank.dev`  | `Demo@1234`  |
+| Admin                  | `admin@neobank.dev` | `Admin@1234` |
+
+Priya has 6 months of history (salary, rent share, bills, transfers with Ravi). In production, demo data is controlled by `SEED_DEMO_DATA`, and an admin exists **only** if you set `ADMIN_PASSWORD`.
+
 | Command         | What it does                          |
 | --------------- | ------------------------------------- |
 | `npm start`     | Run web + API with live reload        |
@@ -117,10 +127,41 @@ Every money-moving request carries an `Idempotency-Key` header, a random value s
 - **The record is written in the same transaction as the money movement**, so they always commit together. Records expire after 24 hours.
 - **On the web side**, the transfer page creates a key when you reach **Review** and reuses it if **Confirm** is retried. The Add money / Withdraw dialog uses one key per dialog.
 
+## History, statements and chart
+
+| Endpoint                           | Purpose                                                                      |
+| ---------------------------------- | ---------------------------------------------------------------------------- |
+| `GET /api/transactions`            | My ledger entries: `accountId, type, direction, from, to, q, page, pageSize` |
+| `GET /api/transactions/export.csv` | Same filters as a CSV statement (max 5,000 rows)                             |
+| `GET /api/transactions/summary`    | Money in/out per month, last 6 months                                        |
+
+- **Dates are Indian Standard Time.** `from`/`to` are inclusive IST calendar days, and months are grouped in IST (`$dateToString` with `timezone: 'Asia/Kolkata'`).
+- **The chart excludes own-account transfers.** They're flagged `internal` on the ledger entry, because moving money between your own accounts isn't income or spending.
+- **CSV safety:** amounts come from integer maths. Text cells that start with `= + - @` are prefixed with `'`, so spreadsheets don't run them as formulas (CSV injection).
+- **Search is literal:** the user's text is regex-escaped before querying.
+- **Web:** the filters live in the URL, so a filtered view can be bookmarked and Back works. While new results load, the previous ones stay on screen, dimmed. `<nb-column-chart>` (UI library) is a plain-SVG chart: validated colour-blind-safe colours with separate light and dark steps, a legend, a hover or keyboard tooltip, and a **Show table** view.
+
+## Admin
+
+Every `/api/admin/*` route requires `requireAuth` + `requireRole('admin')`. In the app, the **Admin** link and the `/admin` pages appear only for admins (`adminGuard`).
+
+| Endpoint                                | Purpose                                                |
+| --------------------------------------- | ------------------------------------------------------ |
+| `GET /api/admin/stats`                  | Users, accounts, frozen, deposits held, today's volume |
+| `GET /api/admin/users?q&page`           | Search users, with account count and total balance     |
+| `GET /api/admin/users/:id`              | One user and all their accounts                        |
+| `PATCH /api/admin/accounts/:id/status`  | `{ status: ACTIVE \| FROZEN, reason }`                 |
+| `GET /api/admin/transactions?type&page` | Every transaction, newest first                        |
+| `GET /api/admin/audit`                  | Latest admin actions                                   |
+| `POST /api/admin/demo/reset`            | Recreate the demo users (only when demo data is on)    |
+
+- **Audit log:** every change an admin makes is written to an append-only audit log, in the **same transaction** as the change. It records who, what, when and the required reason.
+- **A frozen account** can't send or receive money (`409 ACCOUNT_NOT_ACTIVE` / `RECIPIENT_NOT_ACTIVE`) until it's unfrozen.
+
 ## Deploying (Render + Atlas)
 
 1. **Atlas:** create an M0 cluster (Mumbai or Singapore), a database user, and allow network access from `0.0.0.0/0`. Copy the `mongodb+srv://…/neobank` connection string.
-2. **Render:** push this repo to GitHub, then choose **New → Blueprint** and pick the repo. `render.yaml` creates a free Docker web service. Paste the Atlas string as `MONGODB_URI`.
+2. **Render:** push this repo to GitHub, then choose **New → Blueprint** and pick the repo. `render.yaml` creates a free Docker web service. Paste the Atlas string as `MONGODB_URI`, and choose a strong `ADMIN_PASSWORD` (or leave it empty for no admin).
 3. Open `https://<service>.onrender.com/api/health`. It should report `"db": "up"`.
 
 On the free tier the service sleeps after 15 minutes idle, so the first request after that takes about 30–60 seconds.
@@ -131,6 +172,6 @@ On the free tier the service sleeps after 15 minutes idle, so the first request 
 - [x] Day 2 – Authentication (JWT + refresh cookie)
 - [x] Day 3 – Accounts + dashboard
 - [x] Day 4 – Transfers, beneficiaries, idempotency
-- [ ] Day 5 – History, statements, admin
+- [x] Day 5 – History, statements, chart, admin, demo data
 - [ ] Day 6 – Tests, security hardening
 - [ ] Day 7 – Deploy

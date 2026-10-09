@@ -7,7 +7,7 @@ import {
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { LoginRequestSchema } from '@neobank/shared/models';
+import { DEMO_LOGIN, LoginRequestSchema } from '@neobank/shared/models';
 import {
   applyServerErrors,
   Button,
@@ -19,6 +19,7 @@ import {
 import { safeReturnUrl } from '../../core/auth/auth.guards';
 import { AuthStore } from '../../core/auth/auth.store';
 import { toApiError } from '../../core/http/api-error';
+import { SystemStatusStore } from '../../core/system/system-status.store';
 
 @Component({
   selector: 'nb-login',
@@ -28,6 +29,25 @@ import { toApiError } from '../../core/http/api-error';
     <div class="row justify-content-center">
       <div class="col-12 col-sm-10 col-md-7 col-lg-5">
         <nb-card title="Log in to NeoBank">
+          @if (status.health()?.demoMode) {
+            <div
+              class="alert alert-info small d-flex flex-wrap gap-2 align-items-center"
+            >
+              <span>
+                Just looking? Use the demo account
+                <strong>{{ demo.email }}</strong> /
+                <strong>{{ demo.password }}</strong
+                >.
+              </span>
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-primary"
+                (click)="useDemo()"
+              >
+                Fill in
+              </button>
+            </div>
+          }
           @if (error(); as error) {
             <div class="alert alert-danger" role="alert">{{ error }}</div>
           }
@@ -72,6 +92,8 @@ export class Login {
 
   private readonly store = inject(AuthStore);
   private readonly router = inject(Router);
+  protected readonly status = inject(SystemStatusStore);
+  protected readonly demo = DEMO_LOGIN;
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
     email: ['', zodValidator(LoginRequestSchema.shape.email)],
@@ -79,6 +101,13 @@ export class Login {
   });
   protected readonly pending = signal(false);
   protected readonly error = signal<string | null>(null);
+
+  useDemo(): void {
+    this.form.setValue({
+      email: DEMO_LOGIN.email,
+      password: DEMO_LOGIN.password,
+    });
+  }
 
   async submit(): Promise<void> {
     if (this.form.invalid) {
