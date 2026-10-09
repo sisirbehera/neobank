@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import type { AppConfig } from './config/app-config';
 import { apiNotFound, errorHandler } from './middleware/error-handler';
+import { accountsRoutes } from './modules/accounts/accounts.routes';
 import { authRoutes } from './modules/auth/auth.routes';
 import { healthRoutes } from './modules/health/health.routes';
 
@@ -22,6 +23,7 @@ export function createApp(config: AppConfig) {
   const api = Router();
   api.use('/health', healthRoutes(config.version));
   api.use('/auth', authRoutes(config.auth));
+  api.use('/accounts', accountsRoutes(config.auth.accessTokenSecret));
   api.use(apiNotFound);
   app.use('/api', api);
 

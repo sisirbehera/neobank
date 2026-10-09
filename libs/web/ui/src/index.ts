@@ -1,3 +1,4 @@
+export * from './lib/account-number/account-number';
 export * from './lib/amount/amount';
 export * from './lib/button/button';
 export * from './lib/card/card';

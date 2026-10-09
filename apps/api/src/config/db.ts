@@ -25,6 +25,10 @@ export async function connectDb(uri?: string): Promise<DbConnection> {
   }
 
   await mongoose.connect(uri);
+  // Create collections and indexes up front: MongoDB transactions work best
+  // when collections already exist. Models are registered by importing the
+  // app (see main.ts), which happens before connectDb() is called.
+  await mongoose.connection.syncIndexes();
   console.log(
     `[db] connected to ${mongoose.connection.host}/${mongoose.connection.name}`,
   );

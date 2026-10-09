@@ -72,6 +72,25 @@ No database setup is needed. If `MONGODB_URI` is empty, the API starts an **in-m
 - **On page load**, Angular calls `/refresh` to restore the session. The interceptor refreshes and retries once on a `401`.
 - **Protecting a route:** `router.get('/x', requireAuth(secret), requireRole('admin'), handler)`. On the web side, use `canActivate: [authGuard]`.
 
+## Accounts and money movement
+
+All endpoints need a Bearer token and only ever see the signed-in user's accounts. Another user's account returns `404`.
+
+| Endpoint                          | Purpose                                     |
+| --------------------------------- | ------------------------------------------- |
+| `GET /api/accounts`               | List my accounts                            |
+| `POST /api/accounts`              | Open `SAVINGS` / `CURRENT` (max 5 per user) |
+| `GET /api/accounts/:id`           | One account                                 |
+| `POST /api/accounts/:id/deposit`  | Add money (demo, up to ₹1,00,000)           |
+| `POST /api/accounts/:id/withdraw` | Withdraw (`422 INSUFFICIENT_FUNDS`)         |
+| `GET /api/accounts/:id/activity`  | Latest ledger entries of one account        |
+| `GET /api/accounts/activity`      | Latest entries across my accounts           |
+
+- **Account numbers:** `NB` + 9 random digits + a Luhn check digit, so typos are caught on input (`isValidAccountNumber`).
+- **Data model:** each money movement creates a **transaction** (the business event) and one **ledger entry** per affected account (`CREDIT`/`DEBIT`, `balanceAfter`). Ledger entries are append-only, so a balance always equals Σ credits − Σ debits.
+- **Atomicity:** the balance `$inc`, the transaction and the ledger entry are written in one **MongoDB transaction**. A withdrawal only matches `balance >= amount`, so concurrent withdrawals can never overdraw. A test fires 5 at once to prove it.
+- **Web:** `AccountsStore` uses `withEntities()` from NgRx. A deposit calls `setEntity(account)`, and the dashboard total and every card update. The store resets when a different user signs in.
+
 ## Deploying (Render + Atlas)
 
 1. **Atlas:** create an M0 cluster (Mumbai or Singapore), a database user, and allow network access from `0.0.0.0/0`. Copy the `mongodb+srv://…/neobank` connection string.
@@ -84,7 +103,7 @@ On the free tier the service sleeps after 15 minutes idle, so the first request 
 
 - [x] Day 1 – Monorepo, API skeleton, DB, themed UI kit, health check, CI, Docker
 - [x] Day 2 – Authentication (JWT + refresh cookie)
-- [ ] Day 3 – Accounts + dashboard
+- [x] Day 3 – Accounts + dashboard
 - [ ] Day 4 – Transfers (transactions, ledger, idempotency)
 - [ ] Day 5 – History, statements, admin
 - [ ] Day 6 – Tests, security hardening

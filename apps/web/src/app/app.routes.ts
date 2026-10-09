@@ -27,5 +27,19 @@ export const appRoutes: Route[] = [
     loadComponent: () =>
       import('./features/dashboard/dashboard').then((m) => m.Dashboard),
   },
+  {
+    path: 'accounts/new',
+    title: 'Open account · NeoBank',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/accounts/open-account').then((m) => m.OpenAccount),
+  },
+  {
+    path: 'accounts/:id',
+    title: 'Account · NeoBank',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/accounts/account-detail').then((m) => m.AccountDetail),
+  },
   { path: '**', redirectTo: '' },
 ];
