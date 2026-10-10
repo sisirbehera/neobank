@@ -24,6 +24,8 @@ export interface User {
   lockedUntil?: Date;
   lastLoginAt?: Date;
   mfa: UserMfa;
+  /** Shared public demo login: security settings are read-only (see demo-account.ts). */
+  demo: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -50,6 +52,7 @@ const userSchema = new Schema<User>(
     failedLoginCount: { type: Number, default: 0 },
     lockedUntil: Date,
     lastLoginAt: Date,
+    demo: { type: Boolean, default: false },
     mfa: {
       enabled: { type: Boolean, default: false },
       secretEnc: { type: String, select: false },
@@ -75,6 +78,7 @@ export function toUserDto(user: UserDocument): UserDto {
     email: user.email,
     role: user.role,
     mfaEnabled: !!user.mfa?.enabled,
+    demo: !!user.demo,
     createdAt: user.createdAt.toISOString(),
   };
 }

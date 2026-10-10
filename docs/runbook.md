@@ -73,7 +73,7 @@ Open the failed run in **Actions**; the log names the failed check.
 | ---------------------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------- |
 | `Service did not become healthy: 503 db=down`                    | The API is up but can't reach MongoDB                  | See _Database unreachable_ below                                              |
 | `Service did not become healthy: fetch failed` (or a JSON error) | The service is suspended, deleted or renamed           | Check the Render dashboard. If renamed, set the repository variable `APP_URL` |
-| `Demo user can log in` (401)                                     | Someone changed the demo password or turned on its 2FA | See _The public demo login stopped working_                                   |
+| `Demo user can log in` (401)                                     | The demo users were deleted or changed in the database | See _The public demo login stopped working_                                   |
 | Header or caching checks                                         | A code change                                          | Compare with the last green run; the CI Docker job should have caught it      |
 
 After fixing, re-run it from **Actions → Keep alive → Run workflow**.
@@ -87,7 +87,11 @@ After fixing, re-run it from **Actions → Keep alive → Run workflow**.
 
 ### The public demo login stopped working
 
-The demo accounts are shared, and nothing stops a visitor from changing Priya's password or turning on her 2FA. Fix: **Admin → Reset demo data** recreates both demo users with the published password and no 2FA. (Blocking these changes for demo users is planned for Day 8.)
+Demo users are flagged `demo: true`, so the API refuses to change their password, turn on their 2FA or sign out their other devices (`403 DEMO_ACCOUNT`), and wrong passwords never lock them. If the login still fails:
+
+- **`429 Too many attempts`:** the per-IP rate limit; wait 15 minutes.
+- **Wrong password or unknown user:** the demo data was deleted or changed some other way. **Admin → Reset demo data** recreates both demo users with the published password.
+- **Restarted from an old database without the flag:** start-up sets it on the existing demo users, so a restart fixes it.
 
 ### The admin is locked out
 

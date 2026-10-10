@@ -7,6 +7,7 @@ import {
 } from '../auth/lockout';
 import { hashPassword, verifyPassword } from '../auth/password';
 import { RefreshTokenModel } from '../auth/refresh-token.model';
+import { isDemoAccount } from '../users/demo-account';
 import { UserModel } from '../users/user.model';
 
 /** Password changes and the "where am I signed in" list. */
@@ -41,10 +42,13 @@ export class SecurityService {
     userId: string,
     currentSessionId: string,
   ): Promise<SessionDto[]> {
+    // A shared demo login only sees its own session, not other visitors'.
+    const onlyCurrent = await isDemoAccount(userId);
     const tokens = await RefreshTokenModel.find({
       userId,
       revokedAt: { $exists: false },
       expiresAt: { $gt: new Date() },
+      ...(onlyCurrent && { sessionId: currentSessionId }),
     }).sort({ createdAt: -1 });
 
     const seen = new Set<string>();

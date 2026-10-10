@@ -54,6 +54,8 @@ export const UserDtoSchema = z.object({
   role: UserRoleSchema,
   /** Two-step verification (authenticator app) is on. */
   mfaEnabled: z.boolean(),
+  /** The shared demo login: its password, 2FA and other sessions can't be changed. */
+  demo: z.boolean(),
   createdAt: z.iso.datetime(),
 });
 export type UserDto = z.infer<typeof UserDtoSchema>;

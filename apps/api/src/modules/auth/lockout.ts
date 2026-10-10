@@ -23,8 +23,9 @@ export function assertNotLocked(user: UserDocument): void {
 
 export async function recordFailedAttempt(userId: unknown): Promise<void> {
   // $inc is atomic, so parallel guesses can't slip past the limit.
-  const updated = await UserModel.findByIdAndUpdate(
-    userId,
+  // Shared demo logins are never locked: anyone could lock out every visitor.
+  const updated = await UserModel.findOneAndUpdate(
+    { _id: userId, demo: { $ne: true } },
     { $inc: { failedLoginCount: 1 } },
     { returnDocument: 'after' },
   );

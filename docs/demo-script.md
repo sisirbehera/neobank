@@ -5,8 +5,8 @@ A click-through for showing NeoBank to someone, such as in an interview or a rev
 ## Before you start
 
 - **Wake the app 2 minutes early:** open https://neobank-sisir.onrender.com. The free plan sleeps after 15 minutes, and waking takes up to a minute.
-- **Check the demo login works.** If someone changed it, log in as admin → **Admin → Reset demo data** (see the [runbook](runbook.md)).
-- **For the 2FA part, prepare your own customer account** the day before: register, open an account, **Add money** (for example ₹50,000), then **Security → Set up** with your phone. Never turn on 2FA for the shared demo user: it would lock out every other visitor.
+- **Check the demo login works.** Visitors can't change its password or 2FA, but they can add beneficiaries or move its money around. To start clean, log in as admin → **Admin → Reset demo data**.
+- **For the 2FA part, prepare your own customer account** the day before: register, open an account, **Add money** (for example ₹50,000), then **Security → Set up** with your phone. The shared demo user can't turn on 2FA: its Security page explains that it's shared.
 - Have your phone with the authenticator app, plus your admin password.
 - Optional second tab: https://neobank-sisir.onrender.com/api/docs/
 

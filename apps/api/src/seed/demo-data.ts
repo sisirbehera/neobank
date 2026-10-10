@@ -35,12 +35,19 @@ const DEMO_EMAILS = [DEMO_USERS.demo.email, DEMO_USERS.friend.email];
  */
 export async function seedDemoData({ reset = false } = {}): Promise<void> {
   if (reset) await deleteDemoData();
-  else if (await UserModel.exists({ email: DEMO_USERS.demo.email })) return;
+  else if (await UserModel.exists({ email: DEMO_USERS.demo.email })) {
+    // Demo users created before the `demo` flag existed get it now.
+    await UserModel.updateMany(
+      { email: { $in: DEMO_EMAILS } },
+      { $set: { demo: true } },
+    );
+    return;
+  }
 
   const passwordHash = await hashPassword(DEMO_USERS.demo.password);
   const [priya, ravi] = await UserModel.create([
-    { ...pick(DEMO_USERS.demo), passwordHash },
-    { ...pick(DEMO_USERS.friend), passwordHash },
+    { ...demoUser(DEMO_USERS.demo), passwordHash },
+    { ...demoUser(DEMO_USERS.friend), passwordHash },
   ]);
 
   const openAccount = (
@@ -278,6 +285,6 @@ async function deleteDemoData(): Promise<void> {
   await UserModel.deleteMany({ _id: { $in: userIds } });
 }
 
-function pick({ name, email }: { name: string; email: string }) {
-  return { name, email };
+function demoUser({ name, email }: { name: string; email: string }) {
+  return { name, email, demo: true };
 }

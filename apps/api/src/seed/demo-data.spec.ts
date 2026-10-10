@@ -69,6 +69,17 @@ describe('demo data', () => {
     expect(after).not.toEqual(before);
   });
 
+  it('flags the demo users, including ones created before the flag existed', async () => {
+    await seedDemoData();
+    expect(await UserModel.countDocuments({ demo: true })).toBe(2);
+
+    // Like the live database before the flag: the users exist, unflagged.
+    await UserModel.updateMany({}, { $unset: { demo: '' } });
+    await seedDemoData();
+
+    expect(await UserModel.countDocuments({ demo: true })).toBe(2);
+  });
+
   it('creates or promotes the admin', async () => {
     await ensureAdmin('Admin@Example.com', 'Admin@1234');
     await ensureAdmin('admin@example.com', 'ignored-on-second-run');

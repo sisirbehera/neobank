@@ -12,6 +12,7 @@ import { HttpError } from '../../lib/http-error';
 import { param, userId } from '../../lib/request';
 import { requireAuth } from '../../middleware/auth';
 import { validateBody } from '../../middleware/validate';
+import { refuseDemoAccount } from '../users/demo-account';
 import { MfaService } from './mfa.service';
 import { SecurityService } from './security.service';
 
@@ -49,13 +50,14 @@ export function securityRoutes(config: AuthConfig): Router {
 
   // ---- Two-step verification ---------------------------------------------------
 
-  router.post('/mfa/setup', async (req, res) => {
+  router.post('/mfa/setup', refuseDemoAccount, async (req, res) => {
     res.json(await mfa.startSetup(userId(req)));
   });
 
   router.post(
     '/mfa/enable',
     limiter,
+    refuseDemoAccount,
     validateBody(MfaEnableRequestSchema),
     async (req, res) => {
       const body: BackupCodesResponse = {
@@ -105,6 +107,7 @@ export function securityRoutes(config: AuthConfig): Router {
   router.post(
     '/password',
     limiter,
+    refuseDemoAccount,
     validateBody(ChangePasswordRequestSchema),
     async (req, res) => {
       await security.changePassword(userId(req), sessionId(req), req.body);
@@ -116,12 +119,16 @@ export function securityRoutes(config: AuthConfig): Router {
     res.json(await security.sessions(userId(req), sessionId(req)));
   });
 
-  router.post('/sessions/revoke-others', async (req, res) => {
-    await security.revokeOtherSessions(userId(req), sessionId(req));
-    res.status(204).end();
-  });
+  router.post(
+    '/sessions/revoke-others',
+    refuseDemoAccount,
+    async (req, res) => {
+      await security.revokeOtherSessions(userId(req), sessionId(req));
+      res.status(204).end();
+    },
+  );
 
-  router.delete('/sessions/:id', async (req, res) => {
+  router.delete('/sessions/:id', refuseDemoAccount, async (req, res) => {
     await security.revokeSession(userId(req), param(req, 'id'));
     res.status(204).end();
   });

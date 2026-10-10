@@ -9,6 +9,7 @@ export const session = (token = 'access-1'): AuthResponse => ({
     email: 'asha@example.com',
     role: 'customer',
     mfaEnabled: false,
+    demo: false,
     createdAt: new Date().toISOString(),
   },
 });

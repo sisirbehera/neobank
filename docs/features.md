@@ -45,6 +45,7 @@ Codes come from any authenticator app (TOTP, RFC 6238, implemented with Node's `
   - backup codes are SHA-256 hashed and single-use;
   - `lastUsedStep` stops a code from being used twice.
 - **Lockout:** wrong passwords, codes and step-up codes share one counter (5 tries → locked for 15 minutes).
+- **Shared demo accounts:** the seeded demo users are flagged `demo: true` (also returned as `user.demo`). Changing their password, turning on 2FA and signing out other devices answer `403 DEMO_ACCOUNT`; their devices list shows only the caller's own session; and wrong passwords never lock them (the per-IP rate limit still applies). Otherwise one visitor could lock out everyone else.
 - **Sessions:** the access token carries the session id (`sid`), so the API knows which device is "this device". Signing a device out stops its refresh. Its current access token expires within 15 minutes.
 
 ## Accounts and money movement
