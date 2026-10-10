@@ -1,0 +1,27 @@
+# Weekly check of the live app. Waking it also uses the Atlas database,
+# so the free M0 cluster is never paused for inactivity.
+# A failed run makes GitHub email you.
+name: Keep alive
+
+on:
+  schedule:
+    - cron: '30 3 * * 1' # Mondays 03:30 UTC = 09:00 IST
+  workflow_dispatch: # the "Run workflow" button in the Actions tab
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # Override with a repository variable if the service is renamed.
+      APP_URL: ${{ vars.APP_URL || 'https://neobank-sisir.onrender.com' }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      # The smoke script only uses built-in Node features: no npm install.
+      - run: node tools/smoke.mjs "$APP_URL"

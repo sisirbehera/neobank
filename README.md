@@ -221,7 +221,9 @@ Swagger UI at **`/api/docs`**, and the OpenAPI 3.1 document at `/api/docs/openap
 2. **Browser tests:** the Playwright suite.
 3. **Docker:** builds the production image, starts it next to a MongoDB replica set, and runs `tools/smoke.mjs` against it.
 
-Dependabot (`.github/dependabot.yml`) opens weekly update PRs. Angular and Nx updates are grouped, because those packages must move together.
+Dependabot (`.github/dependabot.yml`) opens weekly update PRs. Angular, Nx and Vitest updates are grouped, because those packages must move together.
+
+`.github/workflows/keep-alive.yml` runs the smoke test against the live app every Monday at 09:00 IST, and on demand from **Actions → Keep alive → Run workflow**. It catches a broken deployment (GitHub emails you when it fails), and the weekly database activity stops Atlas from pausing the free cluster. The URL comes from the repository variable `APP_URL`, defaulting to `https://neobank-sisir.onrender.com`.
 
 ## Deploying (Render + MongoDB Atlas, both free)
 
@@ -257,7 +259,7 @@ npm run smoke -- https://<name>.onrender.com
 
 - **Sleeping:** the service sleeps after 15 minutes without traffic, and the first request after that takes about 30–60 seconds. The smoke test waits for it. To keep it awake, add a free [UptimeRobot](https://uptimerobot.com) monitor on `/api/health` every 5 minutes. One always-on service uses about 744 of the 750 free hours a month.
 - **Every push to `main` redeploys automatically.** CI runs in parallel. To deploy only after CI passes, turn on Render's _Auto-Deploy: After CI checks pass_.
-- **Atlas M0:** 512 MB storage and no backups. Reset demo data any time from Admin → **Reset demo data**.
+- **Atlas M0:** 512 MB storage and no backups. A cluster with no connections for a long time can be paused; the weekly _Keep alive_ workflow prevents that. Reset demo data any time from Admin → **Reset demo data**.
 
 ## Roadmap
 
