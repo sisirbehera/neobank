@@ -16,10 +16,12 @@ import type {
   MoneyMovementResponse,
 } from '@neobank/shared/models';
 import { AccountNumberPipe, Button, Card, InrPipe } from '@neobank/web/ui';
+import { formatInr } from '@neobank/shared/utils';
 import { firstValueFrom } from 'rxjs';
 import { AccountsApi } from '../../core/accounts/accounts.api';
 import { AccountsStore } from '../../core/accounts/accounts.store';
 import { toApiError } from '../../core/http/api-error';
+import { ToastService } from '../../core/toast/toast.service';
 import { ActivityList } from './activity-list';
 import { ACCOUNT_TYPE_LABELS } from './labels';
 import { type MoneyAction, MoneyDialog } from './money-dialog';
@@ -141,6 +143,7 @@ export class AccountDetail {
   protected readonly store = inject(AccountsStore);
   private readonly api = inject(AccountsApi);
   private readonly modal = inject(NgbModal);
+  private readonly toasts = inject(ToastService);
 
   protected readonly typeLabels = ACCOUNT_TYPE_LABELS;
   protected readonly account = computed(
@@ -171,6 +174,9 @@ export class AccountDetail {
       const result: MoneyMovementResponse = await ref.result;
       this.activity.update((entries) =>
         [result.entry, ...entries].slice(0, 20),
+      );
+      this.toasts.success(
+        `${action === 'deposit' ? 'Deposited' : 'Withdrew'} ${formatInr(result.entry.amount)}`,
       );
     } catch {
       // Dialog dismissed: nothing to do.

@@ -85,7 +85,9 @@ test('2FA: set up, sign in with a backup code, step-up for a new payee, password
   await expect(page.getByText('Password changed.')).toBeVisible();
 
   // Only this device is left in the sessions list, marked as 2-step.
-  await expect(page.getByText('This device')).toBeVisible();
+  await expect(
+    page.locator('nb-sessions-card').getByText('This device'),
+  ).toBeVisible();
   await expect(
     page.getByRole('button', { name: /Sign out all other devices/ }),
   ).toHaveCount(0);

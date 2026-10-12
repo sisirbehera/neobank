@@ -7,13 +7,14 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthStore } from '../../core/auth/auth.store';
+import { ActivityCard } from './activity-card';
 import { MfaCard } from './mfa-card';
 import { PasswordCard } from './password-card';
 import { SessionsCard } from './sessions-card';
 
 @Component({
   selector: 'nb-security',
-  imports: [RouterLink, MfaCard, PasswordCard, SessionsCard],
+  imports: [RouterLink, ActivityCard, MfaCard, PasswordCard, SessionsCard],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h1 class="h3 mb-4">Security</h1>
@@ -35,11 +36,16 @@ import { SessionsCard } from './sessions-card';
           <nb-mfa-card />
         </div>
         <div class="col-12 col-lg-6">
-          <nb-password-card (changed)="sessions()?.reload()" />
+          <nb-password-card
+            (changed)="sessions()?.reload(); activity()?.reload()"
+          />
         </div>
       }
       <div class="col-12">
         <nb-sessions-card />
+      </div>
+      <div class="col-12">
+        <nb-activity-card />
       </div>
     </div>
   `,
@@ -48,4 +54,5 @@ export class Security {
   private readonly auth = inject(AuthStore);
   protected readonly demo = computed(() => this.auth.user()?.demo ?? false);
   protected readonly sessions = viewChild(SessionsCard);
+  protected readonly activity = viewChild(ActivityCard);
 }

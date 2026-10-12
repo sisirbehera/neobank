@@ -34,6 +34,7 @@ import {
   MonthlySummarySchema,
   OpenAccountRequestSchema,
   RegisterRequestSchema,
+  SecurityEventDtoSchema,
   SessionDtoSchema,
   STEP_UP_HEADER,
   StepUpRequestSchema,
@@ -253,6 +254,14 @@ const operations: Operation[] = [
     auth: 'bearer',
     response: null,
     status: 204,
+  },
+  {
+    method: 'get',
+    path: '/security/activity',
+    tag: 'Security',
+    summary: 'Recent sign-ins and security changes (newest first, up to 30)',
+    auth: 'bearer',
+    response: m.array(SecurityEventDtoSchema),
   },
 
   // ---- Accounts

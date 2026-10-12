@@ -109,5 +109,10 @@ export const appRoutes: Route[] = [
       },
     ],
   },
-  { path: '**', redirectTo: '' },
+  {
+    path: '**',
+    title: 'Page not found · NeoBank',
+    loadComponent: () =>
+      import('./features/not-found/not-found').then((m) => m.NotFound),
+  },
 ];

@@ -7,6 +7,8 @@ import {
   type MfaDisableRequest,
   type MfaSetupResponse,
   MfaSetupResponseSchema,
+  type SecurityEventDto,
+  SecurityEventDtoSchema,
   type SessionDto,
   SessionDtoSchema,
   type StepUpAction,
@@ -64,5 +66,12 @@ export class SecurityApi {
 
   revokeOtherSessions(): Observable<void> {
     return this.http.post<void>('/api/security/sessions/revoke-others', null);
+  }
+
+  /** Recent sign-ins and security changes, newest first. */
+  activity(): Observable<SecurityEventDto[]> {
+    return this.http
+      .get<unknown>('/api/security/activity')
+      .pipe(map((b) => z.array(SecurityEventDtoSchema).parse(b)));
   }
 }

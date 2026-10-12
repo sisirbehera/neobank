@@ -126,3 +126,22 @@ Live since 2026-10-09 at https://neobank-sisir.onrender.com.
 - **Atlas region:** Mumbai has no free tier, and Singapore is better anyway: the database should sit next to the server, and Render has no India region.
 - **Keeping the free tier alive:** a weekly GitHub Actions workflow smoke-tests the live app, which also keeps the Atlas cluster active.
 - **The shared demo login could be hijacked.** Any visitor could change its password or turn on its 2FA and lock everyone else out, or lock it for 15 minutes by typing wrong passwords; its devices list also showed other visitors' IP addresses. Found while writing the runbook, fixed first thing on Day 8 with a `demo` flag on the user. **Lesson:** a shared account is a different kind of user, and every "protect the account" feature can be turned against the people sharing it.
+
+## Day 8: polish
+
+**Built:** a security activity list (API and Security page), toasts, idle logout with a warning, and a 404 page.
+
+**Concepts**
+
+- **An activity log is not an audit log.** The admin audit log records what staff changed, for the bank. Security activity is the customer's own history, written for them: "was that sign-in me?". It records new sign-ins only, not every token refresh, or the list would be noise. Rows expire after 90 days through a TTL index, the same mechanism that deletes expired refresh tokens.
+- **The shared demo login, again:** a list of failed sign-ins with IP addresses would show every visitor the others' attempts. A demo login sees only its own session's rows. Every new screen that lists "your" data needs that check.
+- **Idle logout across tabs:** all tabs share one sign-in, so a forgotten tab must not sign you out while you work in another. The tabs share a last-activity timestamp in `localStorage`, and each compares the time elapsed instead of counting timer ticks, because browsers slow timers in hidden tabs and laptops sleep.
+- **Testing time without waiting:** Vitest fake timers move the clock in unit tests, and Playwright's `page.clock.fastForward('09:01')` does the same in a real browser. Ten minutes of idling runs in under a second.
+- **Accessible toasts:** two live regions, so errors interrupt a screen reader and the rest wait their turn. A toast doesn't vanish while hovered or focused, and errors stay until closed.
+
+**Bugs**
+
+1. **Mocking `Date.now` doesn't change `new Date()`.** A test for stolen-token detection moved a fake clock forward, but the server compares `new Date()` values, so the grace period never ended. **Fix:** backdate `rotatedAt` in the database, as the existing auth tests do. **Lesson:** know which clock the code under test actually reads.
+2. **A spied router still navigates.** `vi.spyOn(router, 'navigateByUrl')` calls the real method, which failed on a route the test router doesn't have. **Fix:** `.mockResolvedValue(true)`. **Lesson:** a spy watches, a mock replaces; pick the one you mean.
+3. **The 404 page could show the previous address.** `Router.url` can still hold the old URL while the new page is being created. **Fix:** read the unknown path from the matched route's own segments (`ActivatedRoute.snapshot.url`).
+4. **An empty `role="alert"` broke an unrelated test.** The toast area is a permanent live region (screen readers only announce changes to a region they already know), and giving it `role="alert"` meant every page now had an extra, empty alert. A login test looking for "the alert" found two. **Fix:** `aria-live` on the regions, no role. **Lesson:** landmarks and roles are an API that both screen readers and tests rely on, so add them on purpose.

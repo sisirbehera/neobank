@@ -36,6 +36,7 @@ Codes come from any authenticator app (TOTP, RFC 6238, implemented with Node's `
 | `GET /api/security/sessions`                | Signed-in devices (one row per session)                        |
 | `DELETE /api/security/sessions/:id`         | Sign out one device                                            |
 | `POST /api/security/sessions/revoke-others` | Sign out all other devices                                     |
+| `GET /api/security/activity`                | Recent sign-ins and security changes (newest 30)               |
 
 - **Two steps:** with 2FA on, the password alone only earns a 5-minute challenge token (a JWT with its own audience, so it can't be used as an access token). The session starts after a correct code.
 - **Admins:** an admin without 2FA gets `method: "ENROLL"` and must set it up before getting in. `/api/admin/*` also checks the access token's `mfa` claim.
@@ -47,6 +48,13 @@ Codes come from any authenticator app (TOTP, RFC 6238, implemented with Node's `
 - **Lockout:** wrong passwords, codes and step-up codes share one counter (5 tries → locked for 15 minutes).
 - **Shared demo accounts:** the seeded demo users are flagged `demo: true` (also returned as `user.demo`). Changing their password, turning on 2FA and signing out other devices answer `403 DEMO_ACCOUNT`; their devices list shows only the caller's own session; and wrong passwords never lock them (the per-IP rate limit still applies). Otherwise one visitor could lock out everyone else.
 - **Sessions:** the access token carries the session id (`sid`), so the API knows which device is "this device". Signing a device out stops its refresh. Its current access token expires within 15 minutes.
+- **Security activity:** a `securityevents` row is written for each new sign-in (not each token refresh), failed sign-in (wrong password or code), lockout, password change, 2FA on/off, new backup codes, devices signed out, and a blocked copied refresh token. Each row keeps the device, IP and session; rows expire after 90 days (TTL index). A demo login sees only its own session's rows, so failed attempts and other visitors' IPs stay hidden.
+
+## In the browser
+
+- **Idle logout:** after 10 minutes without a click, key press, scroll or touch, the app signs out and says why. A warning with a countdown and a "Stay signed in" button appears in the last minute. The last-activity time is shared through `localStorage` (`nb_last_active`, a timestamp), so activity in any tab keeps all tabs signed in: they share one session. This is a convenience on the client; the server's own limits (15-minute access token, 7-day refresh token) still apply.
+- **Toasts** (`ToastService`, rendered by `<nb-toasts>` in the shell): short messages about something that already happened, such as a deposit, a new account, a device signed out, or being logged out. They hide after 5 seconds, but not while hovered or focused; errors stay until closed; at most 3 show at once. Errors are announced at once by screen readers, the rest politely. Form errors and results the user must act on stay as alerts next to the form.
+- **404 page:** unknown addresses show "Page not found" with the address and a way back, instead of silently going to the home page.
 
 ## Accounts and money movement
 

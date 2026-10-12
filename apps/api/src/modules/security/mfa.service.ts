@@ -16,6 +16,7 @@ import {
 import { verifyPassword } from '../auth/password';
 import { signStepUp, STEP_UP_TTL_SECONDS, verifyStepUp } from '../auth/tokens';
 import { MFA_SECRETS, type UserDocument, UserModel } from '../users/user.model';
+import { type EventContext, recordSecurityEvent } from './security-events';
 
 const ISSUER = 'NeoBank';
 const BACKUP_CODE_COUNT = 10;
@@ -69,7 +70,11 @@ export class MfaService {
   }
 
   /** The first correct code proves the phone has the secret: turn 2FA on. */
-  async confirmSetup(userId: string, code: string): Promise<string[]> {
+  async confirmSetup(
+    userId: string,
+    code: string,
+    context: EventContext = {},
+  ): Promise<string[]> {
     const user = await this.findUser(userId);
     if (user.mfa?.enabled) {
       throw HttpError.conflict(
@@ -105,10 +110,16 @@ export class MfaService {
         $unset: { 'mfa.pendingSecretEnc': '' },
       },
     );
+    await recordSecurityEvent(userId, 'MFA_ENABLED', context);
     return backupCodes;
   }
 
-  async disable(userId: string, password: string, code: string): Promise<void> {
+  async disable(
+    userId: string,
+    password: string,
+    code: string,
+    context: EventContext = {},
+  ): Promise<void> {
     const user = await this.findUser(userId, '+passwordHash');
     if (user.role === 'admin') {
       throw HttpError.forbidden('Admins must keep two-step verification on');
@@ -135,9 +146,14 @@ export class MfaService {
         },
       },
     );
+    await recordSecurityEvent(userId, 'MFA_DISABLED', context);
   }
 
-  async regenerateBackupCodes(userId: string, code: string): Promise<string[]> {
+  async regenerateBackupCodes(
+    userId: string,
+    code: string,
+    context: EventContext = {},
+  ): Promise<string[]> {
     const user = await this.findUser(userId);
     this.assertEnabled(user);
     await this.requireCode(user, code);
@@ -146,6 +162,7 @@ export class MfaService {
       { _id: userId },
       { $set: { 'mfa.backupCodeHashes': backupCodes.map(hashBackupCode) } },
     );
+    await recordSecurityEvent(userId, 'BACKUP_CODES_REGENERATED', context);
     return backupCodes;
   }
 

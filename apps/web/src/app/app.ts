@@ -12,10 +12,21 @@ import {
 } from '@angular/router';
 import { ThemeSwitcher } from '@neobank/web/ui/theme';
 import { AuthStore } from './core/auth/auth.store';
+import { IdleLogoutService } from './core/auth/idle-logout.service';
+import { IdleWarning } from './core/auth/idle-warning';
+import { ToastService } from './core/toast/toast.service';
+import { Toasts } from './core/toast/toasts';
 
 @Component({
   selector: 'nb-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ThemeSwitcher],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    ThemeSwitcher,
+    Toasts,
+    IdleWarning,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <nav class="navbar nb-navbar" data-bs-theme="dark">
@@ -62,11 +73,20 @@ import { AuthStore } from './core/auth/auth.store';
     <footer class="container pb-4 small text-body-secondary">
       Demo application for learning – not a real bank. No real money moves.
     </footer>
+
+    <nb-toasts />
+    <nb-idle-warning />
   `,
 })
 export class App {
   protected readonly auth = inject(AuthStore);
   private readonly router = inject(Router);
+  private readonly toasts = inject(ToastService);
+
+  constructor() {
+    // Starts watching for inactivity whenever someone is signed in.
+    inject(IdleLogoutService);
+  }
 
   protected readonly links = computed(() => [
     { path: '/dashboard', label: 'Dashboard' },
@@ -80,5 +100,6 @@ export class App {
   async logout(): Promise<void> {
     await this.auth.logout();
     await this.router.navigateByUrl('/login');
+    this.toasts.info("You're logged out");
   }
 }

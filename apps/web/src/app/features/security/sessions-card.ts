@@ -11,6 +11,7 @@ import { Button, Card } from '@neobank/web/ui';
 import { firstValueFrom } from 'rxjs';
 import { toApiError } from '../../core/http/api-error';
 import { SecurityApi } from '../../core/security/security.api';
+import { ToastService } from '../../core/toast/toast.service';
 import { describeDevice } from './device';
 
 @Component({
@@ -78,6 +79,7 @@ import { describeDevice } from './device';
 })
 export class SessionsCard {
   private readonly api = inject(SecurityApi);
+  private readonly toasts = inject(ToastService);
 
   protected readonly sessions = signal<SessionDto[]>([]);
   protected readonly others = computed(
@@ -100,18 +102,25 @@ export class SessionsCard {
   }
 
   async revoke(id: string): Promise<void> {
-    await this.act(() => firstValueFrom(this.api.revokeSession(id)));
+    await this.act(
+      () => firstValueFrom(this.api.revokeSession(id)),
+      'Device signed out',
+    );
   }
 
   async revokeOthers(): Promise<void> {
-    await this.act(() => firstValueFrom(this.api.revokeOtherSessions()));
+    await this.act(
+      () => firstValueFrom(this.api.revokeOtherSessions()),
+      'All other devices signed out',
+    );
   }
 
-  private async act(action: () => Promise<void>): Promise<void> {
+  private async act(action: () => Promise<void>, done: string): Promise<void> {
     this.pending.set(true);
     this.error.set(null);
     try {
       await action();
+      this.toasts.success(done);
       await this.reload();
     } catch (err) {
       this.error.set(toApiError(err).message);

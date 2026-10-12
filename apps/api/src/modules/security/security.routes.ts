@@ -14,11 +14,21 @@ import { requireAuth } from '../../middleware/auth';
 import { validateBody } from '../../middleware/validate';
 import { refuseDemoAccount } from '../users/demo-account';
 import { MfaService } from './mfa.service';
+import { type EventContext, listSecurityEvents } from './security-events';
 import { SecurityService } from './security.service';
 
 function sessionId(req: Request): string {
   if (!req.auth) throw HttpError.unauthorized();
   return req.auth.sessionId;
+}
+
+/** Device and session of the request, for the activity list. */
+function eventContext(req: Request): EventContext & { sessionId: string } {
+  return {
+    sessionId: sessionId(req),
+    userAgent: req.get('user-agent')?.slice(0, 200),
+    ip: req.ip,
+  };
 }
 
 /** /api/security: two-step verification, step-up codes, password, sessions. */
@@ -61,7 +71,11 @@ export function securityRoutes(config: AuthConfig): Router {
     validateBody(MfaEnableRequestSchema),
     async (req, res) => {
       const body: BackupCodesResponse = {
-        backupCodes: await mfa.confirmSetup(userId(req), req.body.code),
+        backupCodes: await mfa.confirmSetup(
+          userId(req),
+          req.body.code,
+          eventContext(req),
+        ),
       };
       res.json(body);
     },
@@ -72,7 +86,12 @@ export function securityRoutes(config: AuthConfig): Router {
     limiter,
     validateBody(MfaDisableRequestSchema),
     async (req, res) => {
-      await mfa.disable(userId(req), req.body.password, req.body.code);
+      await mfa.disable(
+        userId(req),
+        req.body.password,
+        req.body.code,
+        eventContext(req),
+      );
       res.status(204).end();
     },
   );
@@ -86,6 +105,7 @@ export function securityRoutes(config: AuthConfig): Router {
         backupCodes: await mfa.regenerateBackupCodes(
           userId(req),
           req.body.code,
+          eventContext(req),
         ),
       };
       res.json(body);
@@ -110,7 +130,7 @@ export function securityRoutes(config: AuthConfig): Router {
     refuseDemoAccount,
     validateBody(ChangePasswordRequestSchema),
     async (req, res) => {
-      await security.changePassword(userId(req), sessionId(req), req.body);
+      await security.changePassword(userId(req), eventContext(req), req.body);
       res.status(204).end();
     },
   );
@@ -123,14 +143,22 @@ export function securityRoutes(config: AuthConfig): Router {
     '/sessions/revoke-others',
     refuseDemoAccount,
     async (req, res) => {
-      await security.revokeOtherSessions(userId(req), sessionId(req));
+      await security.revokeOtherSessions(userId(req), eventContext(req));
       res.status(204).end();
     },
   );
 
   router.delete('/sessions/:id', refuseDemoAccount, async (req, res) => {
-    await security.revokeSession(userId(req), param(req, 'id'));
+    await security.revokeSession(
+      userId(req),
+      param(req, 'id'),
+      eventContext(req),
+    );
     res.status(204).end();
+  });
+
+  router.get('/activity', async (req, res) => {
+    res.json(await listSecurityEvents(userId(req), sessionId(req)));
   });
 
   return router;

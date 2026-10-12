@@ -1,4 +1,5 @@
 import { HttpError } from '../../lib/http-error';
+import { recordSecurityEvent } from '../security/security-events';
 import { type UserDocument, UserModel } from '../users/user.model';
 
 /**
@@ -39,6 +40,7 @@ export async function recordFailedAttempt(userId: unknown): Promise<void> {
         },
       },
     );
+    await recordSecurityEvent(updated._id, 'ACCOUNT_LOCKED');
   }
 }
 

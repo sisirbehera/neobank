@@ -14,6 +14,7 @@ import {
 import { Button, Card, FormField, Input, zodValidator } from '@neobank/web/ui';
 import { AccountsStore } from '../../core/accounts/accounts.store';
 import { toApiError } from '../../core/http/api-error';
+import { ToastService } from '../../core/toast/toast.service';
 
 const TYPES: { value: AccountType; title: string; text: string }[] = [
   {
@@ -103,6 +104,7 @@ const TYPES: { value: AccountType; title: string; text: string }[] = [
 export class OpenAccount {
   protected readonly store = inject(AccountsStore);
   private readonly router = inject(Router);
+  private readonly toasts = inject(ToastService);
 
   protected readonly types = TYPES;
   protected readonly maxAccounts = MAX_ACCOUNTS_PER_USER;
@@ -128,6 +130,7 @@ export class OpenAccount {
     try {
       const account = await this.store.open(this.form.getRawValue());
       await this.router.navigate(['/accounts', account.id]);
+      this.toasts.success('Account opened');
     } catch (err) {
       this.error.set(toApiError(err).message);
     } finally {
