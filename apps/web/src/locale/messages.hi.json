@@ -131,6 +131,7 @@
     "home.danger": "ख़तरा",
     "home.database": "डेटाबेस",
     "home.intro": "Angular, Express और MongoDB से बना एक डेमो डिजिटल बैंक।",
+    "home.offline": "ऑफ़लाइन",
     "home.online": "ऑनलाइन",
     "home.openAnAccount": "खाता खोलें",
     "home.outline": "आउटलाइन",

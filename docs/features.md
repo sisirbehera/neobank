@@ -187,10 +187,9 @@ Accessibility, best practices and SEO are 100 on every page, in both weeks and b
 - **First paint did not get faster** (2.7 → 2.9 s). The browser can't paint anything until the 34 KB Bootstrap stylesheet has loaded, however complete the HTML is, and 89% of that stylesheet is unused on these pages. That, not JavaScript, now limits the first paint.
 - **The page downloads more** (+38 KB): the bigger HTML, hydration and the week's features.
 
-**What's left, biggest first:**
+**Fixed afterwards:** the remaining layout shift (0.058) came from the System status card, which grew from one line to four when `/api/health` answered. It now always shows its four rows, with grey "Checking…" placeholders while it waits. Re-measured the same way: CLS 0.001 (English) and 0.000 (Hindi), and performance 87 and 83 on the home page.
 
-1. **Render-blocking CSS (~300 ms):** load only the Bootstrap parts the app uses (Sass partials instead of the whole `bootstrap.min.css`), or inline the critical CSS. Angular's built-in critical-CSS inlining is switched off because its `onload` attribute is blocked by our CSP (`script-src-attr 'none'`).
-2. **The remaining layout shift (0.058):** the System status card grows when `/api/health` answers. Reserving its height would remove it.
+**What's left:** the render-blocking stylesheet (~300 ms of first paint). Load only the Bootstrap parts the app uses (Sass partials instead of the whole `bootstrap.min.css`), or inline the critical CSS. Angular's built-in critical-CSS inlining is switched off because its `onload` attribute is blocked by our CSP (`script-src-attr 'none'`).
 
 ## Notifications
 

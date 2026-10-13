@@ -54,36 +54,56 @@ import { SystemStatusStore } from '../../core/system/system-status.store';
             Refresh
           </button>
 
-          @if (store.error(); as error) {
-            <div class="alert alert-danger mb-0" role="alert">{{ error }}</div>
-          } @else if (store.health(); as health) {
-            <dl class="row mb-0">
-              <dt class="col-5">API</dt>
-              <dd class="col-7">
+          <!-- The same four rows in every state, so the card keeps its height
+               when the answer arrives (no layout shift below it). -->
+          <dl
+            class="row mb-0"
+            [attr.aria-busy]="!store.health() && !store.error()"
+          >
+            <dt class="col-5">API</dt>
+            <dd class="col-7">
+              @if (store.error()) {
+                <span class="badge text-bg-danger" i18n="@@home.offline"
+                  >offline</span
+                >
+              } @else if (store.health()) {
                 <span class="badge text-bg-success" i18n="@@home.online"
                   >online</span
                 >
-              </dd>
-              <dt class="col-5" i18n="@@home.database">Database</dt>
-              <dd class="col-7">
+              } @else {
+                <span class="badge text-bg-secondary" i18n="@@home.checking"
+                  >Checking…</span
+                >
+              }
+            </dd>
+            <dt class="col-5" i18n="@@home.database">Database</dt>
+            <dd class="col-7">
+              @if (store.health(); as health) {
                 <span
                   class="badge"
                   [class.text-bg-success]="store.dbOnline()"
                   [class.text-bg-danger]="!store.dbOnline()"
                   >{{ health.db }}</span
                 >
-              </dd>
-              <dt class="col-5" i18n="@@home.uptime">Uptime</dt>
-              <dd class="col-7" i18n="@@home.uptimeSeconds">
-                {{ health.uptimeSeconds }} s
-              </dd>
-              <dt class="col-5" i18n="@@home.version">Version</dt>
-              <dd class="col-7 mb-0">{{ health.version }}</dd>
-            </dl>
-          } @else {
-            <p class="text-body-secondary mb-0" i18n="@@home.checking">
-              Checking…
-            </p>
+              } @else {
+                <span class="badge text-bg-secondary">–</span>
+              }
+            </dd>
+            <dt class="col-5" i18n="@@home.uptime">Uptime</dt>
+            <dd class="col-7">
+              @if (store.health(); as health) {
+                <ng-container i18n="@@home.uptimeSeconds"
+                  >{{ health.uptimeSeconds }} s</ng-container
+                >
+              } @else {
+                –
+              }
+            </dd>
+            <dt class="col-5" i18n="@@home.version">Version</dt>
+            <dd class="col-7 mb-0">{{ store.health()?.version ?? '–' }}</dd>
+          </dl>
+          @if (store.error(); as error) {
+            <p class="text-danger small mt-2 mb-0" role="alert">{{ error }}</p>
           }
         </nb-card>
       </div>
