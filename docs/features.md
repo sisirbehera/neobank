@@ -164,6 +164,34 @@ Home, log in and register are rendered to HTML at build time, so they appear bef
 | any other `/en/…`, `/hi/…`  | that language's `index.csr.html` (empty shell)            |
 | no language (`/`, `/login`) | a `302` to the visitor's language, keeping path and query |
 
+### Week 1 vs Week 2 (Day 12)
+
+Both versions measured the same way on the same day: the production Docker image with MongoDB, Lighthouse 12.8.2, mobile with simulated slow 4G, median of 3 runs. (Absolute scores differ from the Day 7 table above, which used another machine state; compare within this table only.)
+
+| Page            | Version | Performance | FCP   | LCP   | TBT    | CLS   | Downloaded |
+| --------------- | ------- | ----------- | ----- | ----- | ------ | ----- | ---------- |
+| Home            | Week 1  | 74          | 2.7 s | 3.9 s | 285 ms | 0.139 | 274 KB     |
+| Home (`/en/`)   | Week 2  | **82**      | 2.9 s | 3.7 s | 147 ms | 0.058 | 312 KB     |
+| Home (`/hi/`)   | Week 2  | 81          | 2.9 s | 3.9 s | 159 ms | 0.059 | 317 KB     |
+| Log in          | Week 1  | 81          | 2.7 s | 3.5 s | 207 ms | 0.087 | 274 KB     |
+| Log in (`/en/`) | Week 2  | **85**      | 2.9 s | 3.6 s | 65 ms  | 0.026 | 312 KB     |
+| Log in (`/hi/`) | Week 2  | 81          | 3.0 s | 3.8 s | 198 ms | 0.026 | 316 KB     |
+
+Accessibility, best practices and SEO are 100 on every page, in both weeks and both languages.
+
+**What pre-rendering changed, and what it didn't:**
+
+- **Layout shift fell by more than half** (home 0.139 → 0.058). In Week 1 the page was drawn by JavaScript, and the footer jumped down as content appeared. Now the HTML arrives complete.
+- **Blocking time roughly halved** (home 285 → 147 ms, log in 207 → 65 ms). Hydration reuses the HTML instead of building every element.
+- **The largest element waits less for JavaScript.** The intro paragraph's render delay in the unthrottled trace fell from 1,013 ms to 379 ms.
+- **First paint did not get faster** (2.7 → 2.9 s). The browser can't paint anything until the 34 KB Bootstrap stylesheet has loaded, however complete the HTML is, and 89% of that stylesheet is unused on these pages. That, not JavaScript, now limits the first paint.
+- **The page downloads more** (+38 KB): the bigger HTML, hydration and the week's features.
+
+**What's left, biggest first:**
+
+1. **Render-blocking CSS (~300 ms):** load only the Bootstrap parts the app uses (Sass partials instead of the whole `bootstrap.min.css`), or inline the critical CSS. Angular's built-in critical-CSS inlining is switched off because its `onload` attribute is blocked by our CSP (`script-src-attr 'none'`).
+2. **The remaining layout shift (0.058):** the System status card grows when `/api/health` answers. Reserving its height would remove it.
+
 ## Notifications
 
 | Endpoint                           | Purpose                                         |
