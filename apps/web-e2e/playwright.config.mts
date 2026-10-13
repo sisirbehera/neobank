@@ -36,7 +36,9 @@ export default defineConfig({
       // Through the dev-server proxy: 200 only once Angular, the API and the
       // database are all up (the API starts slower than the dev server).
       url: 'http://localhost:4200/api/health',
-      timeout: 180_000,
+      // CI runners have 2 CPUs and a cold cache: the API's first build and
+      // the in-memory MongoDB start can take a few minutes there.
+      timeout: 300_000,
       reuseExistingServer: true,
       cwd: workspaceRoot,
       // Every test logs in from the same IP; don't let the login rate limit
