@@ -36,6 +36,7 @@ Codes come from any authenticator app (TOTP, RFC 6238, implemented with Node's `
 | `GET /api/security/sessions`                | Signed-in devices (one row per session)                        |
 | `DELETE /api/security/sessions/:id`         | Sign out one device                                            |
 | `POST /api/security/sessions/revoke-others` | Sign out all other devices                                     |
+| `GET /api/security/activity`                | Recent sign-ins and security changes (newest 30)               |
 
 - **Two steps:** with 2FA on, the password alone only earns a 5-minute challenge token (a JWT with its own audience, so it can't be used as an access token). The session starts after a correct code.
 - **Admins:** an admin without 2FA gets `method: "ENROLL"` and must set it up before getting in. `/api/admin/*` also checks the access token's `mfa` claim.
@@ -47,6 +48,13 @@ Codes come from any authenticator app (TOTP, RFC 6238, implemented with Node's `
 - **Lockout:** wrong passwords, codes and step-up codes share one counter (5 tries → locked for 15 minutes).
 - **Shared demo accounts:** the seeded demo users are flagged `demo: true` (also returned as `user.demo`). Changing their password, turning on 2FA and signing out other devices answer `403 DEMO_ACCOUNT`; their devices list shows only the caller's own session; and wrong passwords never lock them (the per-IP rate limit still applies). Otherwise one visitor could lock out everyone else.
 - **Sessions:** the access token carries the session id (`sid`), so the API knows which device is "this device". Signing a device out stops its refresh. Its current access token expires within 15 minutes.
+- **Security activity:** a `securityevents` row is written for each new sign-in (not each token refresh), failed sign-in (wrong password or code), lockout, password change, 2FA on/off, new backup codes, devices signed out, and a blocked copied refresh token. Each row keeps the device, IP and session; rows expire after 90 days (TTL index). A demo login sees only its own session's rows, so failed attempts and other visitors' IPs stay hidden.
+
+## In the browser
+
+- **Idle logout:** after 5 minutes without a click, key press, scroll or touch, the app signs out and says why. A warning with a countdown and a "Stay signed in" button appears in the last minute. The last-activity time is shared through `localStorage` (`nb_last_active`, a timestamp), so activity in any tab keeps all tabs signed in: they share one session. This is a convenience on the client; the server's own limits (15-minute access token, 7-day refresh token) still apply.
+- **Toasts** (`ToastService`, rendered by `<nb-toasts>` in the shell): short messages about something that already happened, such as a deposit, a new account, a device signed out, or being logged out. They hide after 5 seconds, but not while hovered or focused; errors stay until closed; at most 3 show at once. Errors are announced at once by screen readers, the rest politely. Form errors and results the user must act on stay as alerts next to the form.
+- **404 page:** unknown addresses show "Page not found" with the address and a way back, instead of silently going to the home page.
 
 ## Accounts and money movement
 
@@ -133,7 +141,7 @@ Measured on the production build with Lighthouse (simulated mid-range phone on s
 | Home   | 83          | 100           | 100            | 100 |
 | Log in | 84          | 100           | 100            | 100 |
 
-Startup download: **629 KB raw / 136 KB gzipped** (down from 1.10 MB / 222 KB). What made the difference:
+Startup download: **629 KB raw / 136 KB gzipped** after Day 7 (down from 1.10 MB / 222 KB). Day 8 added toasts and idle logout to the shell (139 KB), Day 9 hydration and event replay (149 KB), and Day 10 the language switcher and the translation tables and hydration of translated components (**154 KB**, the same for each language). What made the difference on Day 7:
 
 - **`zod/mini` for the shared schemas.** Same rules, written as functions, so bundlers keep only what is used. Zod went from ~450 KB to ~25 KB in the browser. The API keeps full `zod`, and both share Zod's core.
 - **`@neobank/web/ui/theme` secondary entry point.** The app shell no longer pulls the whole UI library (forms, chart) into the first download.
@@ -144,6 +152,71 @@ Startup download: **629 KB raw / 136 KB gzipped** (down from 1.10 MB / 222 KB). 
   - Hashed bundles are cached for a year (`immutable`); `index.html` uses `no-cache`, so a deploy is picked up immediately.
   - API responses use `no-store`, so account data never sits in a cache.
 - **Preloading:** after the first page renders, the other pages (1–4 KB each) are preloaded.
+
+### Pre-built pages (Day 9)
+
+Home, log in and register are rendered to HTML at build time, so they appear before any JavaScript runs, even with JavaScript off. Signed-in pages are rendered in the browser. Details and trade-offs: [0012](decisions/0012-prerender-public-pages.md).
+
+| Address                     | File the API sends                                        |
+| --------------------------- | --------------------------------------------------------- |
+| `/en/`, `/hi/`              | `en/index.html`, `hi/index.html` (pre-built home page)    |
+| `/en/login`, `/hi/register` | `en/login/index.html`, `hi/register/index.html`, …        |
+| any other `/en/…`, `/hi/…`  | that language's `index.csr.html` (empty shell)            |
+| no language (`/`, `/login`) | a `302` to the visitor's language, keeping path and query |
+
+### Week 1 vs Week 2 (Day 12)
+
+Both versions measured the same way on the same day: the production Docker image with MongoDB, Lighthouse 12.8.2, mobile with simulated slow 4G, median of 3 runs. (Absolute scores differ from the Day 7 table above, which used another machine state; compare within this table only.)
+
+| Page            | Version | Performance | FCP   | LCP   | TBT    | CLS   | Downloaded |
+| --------------- | ------- | ----------- | ----- | ----- | ------ | ----- | ---------- |
+| Home            | Week 1  | 74          | 2.7 s | 3.9 s | 285 ms | 0.139 | 274 KB     |
+| Home (`/en/`)   | Week 2  | **82**      | 2.9 s | 3.7 s | 147 ms | 0.058 | 312 KB     |
+| Home (`/hi/`)   | Week 2  | 81          | 2.9 s | 3.9 s | 159 ms | 0.059 | 317 KB     |
+| Log in          | Week 1  | 81          | 2.7 s | 3.5 s | 207 ms | 0.087 | 274 KB     |
+| Log in (`/en/`) | Week 2  | **85**      | 2.9 s | 3.6 s | 65 ms  | 0.026 | 312 KB     |
+| Log in (`/hi/`) | Week 2  | 81          | 3.0 s | 3.8 s | 198 ms | 0.026 | 316 KB     |
+
+Accessibility, best practices and SEO are 100 on every page, in both weeks and both languages.
+
+**What pre-rendering changed, and what it didn't:**
+
+- **Layout shift fell by more than half** (home 0.139 → 0.058). In Week 1 the page was drawn by JavaScript, and the footer jumped down as content appeared. Now the HTML arrives complete.
+- **Blocking time roughly halved** (home 285 → 147 ms, log in 207 → 65 ms). Hydration reuses the HTML instead of building every element.
+- **The largest element waits less for JavaScript.** The intro paragraph's render delay in the unthrottled trace fell from 1,013 ms to 379 ms.
+- **First paint did not get faster** (2.7 → 2.9 s). The browser can't paint anything until the 34 KB Bootstrap stylesheet has loaded, however complete the HTML is, and 89% of that stylesheet is unused on these pages. That, not JavaScript, now limits the first paint.
+- **The page downloads more** (+38 KB): the bigger HTML, hydration and the week's features.
+
+**Fixed afterwards:** the remaining layout shift (0.058) came from the System status card, which grew from one line to four when `/api/health` answered. It now always shows its four rows, with grey "Checking…" placeholders while it waits. Re-measured the same way: CLS 0.001 (English) and 0.000 (Hindi), and performance 87 and 83 on the home page.
+
+**What's left:** the render-blocking stylesheet (~300 ms of first paint). Load only the Bootstrap parts the app uses (Sass partials instead of the whole `bootstrap.min.css`), or inline the critical CSS. Angular's built-in critical-CSS inlining is switched off because its `onload` attribute is blocked by our CSP (`script-src-attr 'none'`).
+
+## Notifications
+
+| Endpoint                           | Purpose                                         |
+| ---------------------------------- | ----------------------------------------------- |
+| `GET /api/notifications`           | Newest 20 and the unread count                  |
+| `GET /api/notifications/summary`   | Unread count and newest id (what the app polls) |
+| `POST /api/notifications/:id/read` | Mark one as read (`404` for someone else's)     |
+| `POST /api/notifications/read-all` | Mark all as read                                |
+
+- **What creates one:** money received from someone else (in the transfer's transaction; not for transfers between your own accounts), a sign-in from a browser not seen in the last 90 days (not the first sign-in), password and 2FA changes, a lockout, a blocked copied sign-in, and the bank freezing or unfreezing an account.
+- **Stored as a type and values** (`MONEY_RECEIVED` + `{ amountPaise, from, accountId, account }`); the web app words it in the page's language. Details: [0014](decisions/0014-notifications-polling-type-and-values.md).
+- **The bell** in the navbar shows the unread count; its list marks items read when opened and links to the account or the Security page. It is loaded with `@defer (on idle)`, so signed-out visitors never download it.
+- **New ones appear as toasts.** The app checks the summary on start, when the tab becomes visible, and every 60 seconds while it is visible. Only notifications that arrived since the page loaded become toasts (at most 3 at once). Money received or an account frozen also refreshes the cached balances.
+- **The shared demo login** gets no sign-in or security notifications (they would show visitors each other's devices).
+- Rows expire after 90 days.
+
+## Languages
+
+English and Hindi, with the language in the address: `/en/dashboard`, `/hi/dashboard`. Details and trade-offs: [0013](decisions/0013-built-in-i18n-per-language-builds.md).
+
+- **Built in, at build time.** Angular's `@angular/localize` produces one complete app per language. A missing Hindi translation fails the build. Customer screens are translated; admin screens are English-only.
+- **Which language you get:** an address without a language redirects to the `nb_lang` cookie's language, else the first supported language in the browser's `Accept-Language`, else English.
+- **Switching** (the English / हिन्दी link in the navbar) opens the same page in the other language and remembers the choice: in the cookie on this device, and on the profile for signed-in users (`PATCH /api/auth/me` with `{ "language": "hi" }`). The session survives the page reload.
+- **The last explicit choice wins.** After signing in on a device that never chose, the profile's language applies. The profile's language is empty until the user chooses (the switcher, or the page they registered on). The shared demo login's profile can't be changed (`403 DEMO_ACCOUNT`).
+- **Errors:** the API keeps English messages, but each error has a `code`, plus numbers in `meta` where the message has them (`ACCOUNT_LOCKED` → `minutes`, `DAILY_LIMIT_EXCEEDED` → `limitPaise`, `ACCOUNT_NOT_ACTIVE` → `status`). The browser words them in its language. Validation messages from the shared schemas are translated by their English text (`core/i18n/messages.ts`); a unit test fails if a schema message has no translation.
+- **Formatting follows the language:** amounts with `formatInr(paise, locale)`, dates with Angular's date pipe, chart months with `Intl`. Both languages use lakh/crore grouping and Latin digits (`₹12,34,567.89`); short chart labels read "₹85K / ₹1.2L" in English and "₹85 हज़ार / ₹1.2 लाख" in Hindi.
 
 ## API docs
 

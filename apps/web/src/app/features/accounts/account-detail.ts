@@ -8,6 +8,7 @@ import {
   input,
   signal,
   untracked,
+  LOCALE_ID,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
@@ -16,12 +17,14 @@ import type {
   MoneyMovementResponse,
 } from '@neobank/shared/models';
 import { AccountNumberPipe, Button, Card, InrPipe } from '@neobank/web/ui';
+import { formatInr } from '@neobank/shared/utils';
 import { firstValueFrom } from 'rxjs';
 import { AccountsApi } from '../../core/accounts/accounts.api';
 import { AccountsStore } from '../../core/accounts/accounts.store';
 import { toApiError } from '../../core/http/api-error';
+import { ToastService } from '../../core/toast/toast.service';
 import { ActivityList } from './activity-list';
-import { ACCOUNT_TYPE_LABELS } from './labels';
+import { ACCOUNT_STATUS_LABELS, ACCOUNT_TYPE_LABELS } from './labels';
 import { type MoneyAction, MoneyDialog } from './money-dialog';
 
 @Component({
@@ -38,7 +41,9 @@ import { type MoneyAction, MoneyDialog } from './money-dialog';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <nav class="mb-3 small">
-      <a routerLink="/dashboard">← Dashboard</a>
+      <a routerLink="/dashboard" i18n="@@account.backToDashboard"
+        >← Dashboard</a
+      >
     </nav>
 
     @if (account(); as account) {
@@ -63,15 +68,15 @@ import { type MoneyAction, MoneyDialog } from './money-dialog';
                 class="btn btn-link btn-sm p-0"
                 (click)="copy(account.accountNumber)"
               >
-                {{ copied() ? 'Copied' : 'Copy' }}
+                {{ copied() ? copiedText : copyText }}
               </button>
               @if (account.status !== 'ACTIVE') {
                 <span class="badge text-bg-warning text-capitalize">{{
-                  account.status.toLowerCase()
+                  statusLabels[account.status]
                 }}</span>
               }
             </div>
-            <div class="small text-body-secondary mt-1">
+            <div class="small text-body-secondary mt-1" i18n="@@account.opened">
               Opened {{ account.createdAt | date: 'mediumDate' }}
             </div>
           </div>
@@ -82,6 +87,7 @@ import { type MoneyAction, MoneyDialog } from './money-dialog';
               variant="success"
               [disabled]="account.status !== 'ACTIVE'"
               (click)="openDialog('deposit')"
+              i18n="@@account.addMoney"
             >
               Add money
             </button>
@@ -90,6 +96,7 @@ import { type MoneyAction, MoneyDialog } from './money-dialog';
               variant="outline-primary"
               [disabled]="account.status !== 'ACTIVE' || account.balance === 0"
               (click)="openDialog('withdraw')"
+              i18n="@@account.withdraw"
             >
               Withdraw
             </button>
@@ -99,6 +106,7 @@ import { type MoneyAction, MoneyDialog } from './money-dialog';
                 variant="outline-primary"
                 routerLink="/transfer"
                 [queryParams]="{ from: account.id }"
+                i18n="@@common.transfer"
                 >Transfer</a
               >
             }
@@ -106,7 +114,7 @@ import { type MoneyAction, MoneyDialog } from './money-dialog';
         </div>
       </section>
 
-      <nb-card title="Recent activity">
+      <nb-card title="Recent activity" i18n-title="@@common.recentActivity">
         <a
           cardActions
           class="small"
@@ -120,17 +128,18 @@ import { type MoneyAction, MoneyDialog } from './money-dialog';
           <nb-activity-list
             [entries]="activity()"
             emptyText="No transactions yet. Add money to get started."
+            i18n-emptyText="@@account.noTransactions"
           />
         }
       </nb-card>
     } @else if (store.loaded()) {
-      <div class="alert alert-warning">
+      <div class="alert alert-warning" i18n="@@account.notFound">
         Account not found. <a routerLink="/dashboard">Back to dashboard</a>
       </div>
     } @else if (store.error(); as error) {
       <div class="alert alert-danger">{{ error }}</div>
     } @else {
-      <p class="text-body-secondary">Loading…</p>
+      <p class="text-body-secondary" i18n="@@common.loading">Loading…</p>
     }
   `,
 })
@@ -141,11 +150,21 @@ export class AccountDetail {
   protected readonly store = inject(AccountsStore);
   private readonly api = inject(AccountsApi);
   private readonly modal = inject(NgbModal);
+  private readonly toasts = inject(ToastService);
+  private readonly locale = inject(LOCALE_ID);
+  protected readonly statusLabels = ACCOUNT_STATUS_LABELS;
+  protected readonly copyText = $localize`:@@common.copy:Copy`;
+  protected readonly copiedText = $localize`:@@common.copied:Copied`;
 
   protected readonly typeLabels = ACCOUNT_TYPE_LABELS;
   protected readonly account = computed(
     () => this.store.entityMap()[this.id()],
   );
+  /** Changes when the balance or status does. */
+  private readonly accountState = computed(() => {
+    const account = this.account();
+    return account ? `${account.balance}|${account.status}` : '';
+  });
   protected readonly activity = signal<LedgerEntryDto[]>([]);
   protected readonly activityError = signal<string | null>(null);
   protected readonly copied = signal(false);
@@ -153,9 +172,11 @@ export class AccountDetail {
   constructor() {
     void this.store.load();
 
-    // Reload the activity whenever the route switches to another account.
+    // Reload the activity when the route switches to another account, and
+    // when this account changes (money received, frozen: see notifications).
     effect(() => {
       const id = this.id();
+      this.accountState();
       untracked(() => void this.loadActivity(id));
     });
   }
@@ -171,6 +192,11 @@ export class AccountDetail {
       const result: MoneyMovementResponse = await ref.result;
       this.activity.update((entries) =>
         [result.entry, ...entries].slice(0, 20),
+      );
+      this.toasts.success(
+        action === 'deposit'
+          ? $localize`:@@account.depositedToast:Deposited ${formatInr(result.entry.amount, this.locale)}:amount:`
+          : $localize`:@@account.withdrewToast:Withdrew ${formatInr(result.entry.amount, this.locale)}:amount:`,
       );
     } catch {
       // Dialog dismissed: nothing to do.

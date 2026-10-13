@@ -4,6 +4,7 @@ import {
   computed,
   inject,
   signal,
+  LOCALE_ID,
 } from '@angular/core';
 import {
   type AbstractControl,
@@ -56,13 +57,17 @@ export type MoneyAction = 'deposit' | 'withdraw';
           type="button"
           class="btn-close"
           aria-label="Close"
+          i18n-aria-label="@@common.close"
           (click)="activeModal.dismiss()"
         ></button>
       </div>
 
       <div class="modal-body">
         @if (account(); as account) {
-          <p class="text-body-secondary small">
+          <p
+            class="text-body-secondary small"
+            i18n="@@money.accountAndAvailable"
+          >
             {{ account.accountNumber | accountNumber }} · Available
             {{ account.balance | inr }}
           </p>
@@ -72,7 +77,12 @@ export type MoneyAction = 'deposit' | 'withdraw';
           <div class="alert alert-danger" role="alert">{{ error }}</div>
         }
 
-        <nb-form-field label="Amount (₹)" hint="Up to ₹1,00,000 at a time.">
+        <nb-form-field
+          label="Amount (₹)"
+          i18n-label="@@common.amountRupees"
+          hint="Up to ₹1,00,000 at a time."
+          i18n-hint="@@money.amountHint"
+        >
           <input
             nbInput
             id="amount"
@@ -83,13 +93,16 @@ export type MoneyAction = 'deposit' | 'withdraw';
           />
         </nb-form-field>
 
-        <nb-form-field label="Description (optional)">
+        <nb-form-field
+          label="Description (optional)"
+          i18n-label="@@common.descriptionOptional"
+        >
           <input
             nbInput
             id="description"
             autocomplete="off"
             formControlName="description"
-            [placeholder]="action() === 'deposit' ? 'e.g. Salary' : 'e.g. ATM'"
+            [placeholder]="descriptionHint()"
           />
         </nb-form-field>
       </div>
@@ -100,6 +113,7 @@ export type MoneyAction = 'deposit' | 'withdraw';
           type="button"
           variant="outline-secondary"
           (click)="activeModal.dismiss()"
+          i18n="@@common.cancel"
         >
           Cancel
         </button>
@@ -118,11 +132,19 @@ export type MoneyAction = 'deposit' | 'withdraw';
 export class MoneyDialog {
   protected readonly activeModal = inject(NgbActiveModal);
   private readonly store = inject(AccountsStore);
+  private readonly locale = inject(LOCALE_ID);
 
   protected readonly account = signal<AccountDto | null>(null);
   protected readonly action = signal<MoneyAction>('deposit');
   protected readonly title = computed(() =>
-    this.action() === 'deposit' ? 'Add money' : 'Withdraw',
+    this.action() === 'deposit'
+      ? $localize`:@@money.titleDeposit:Add money`
+      : $localize`:@@money.titleWithdraw:Withdraw`,
+  );
+  protected readonly descriptionHint = computed(() =>
+    this.action() === 'deposit'
+      ? $localize`:@@money.descriptionExampleDeposit:e.g. Salary`
+      : $localize`:@@money.descriptionExampleWithdraw:e.g. ATM`,
   );
   protected readonly pending = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -185,7 +207,9 @@ export class MoneyDialog {
     if (this.action() !== 'withdraw' || !account) return null;
     const parsed = RupeeInputSchema.safeParse(control.value);
     return parsed.success && parsed.data > account.balance
-      ? { zod: `Insufficient funds (available ${formatInr(account.balance)})` }
+      ? {
+          zod: $localize`:@@common.insufficientFundsWithBalance:Insufficient funds (available ${formatInr(account.balance, this.locale)}:amount:)`,
+        }
       : null;
   }
 }

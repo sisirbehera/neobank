@@ -4,11 +4,13 @@ import type {
   MfaChallenge,
   MfaSetupResponse,
   RegisterRequest,
+  UpdateProfileRequest,
   UserDto,
 } from '@neobank/shared/models';
 import type { AuthConfig } from '../../config/app-config';
 import { HttpError } from '../../lib/http-error';
 import { MfaService } from '../security/mfa.service';
+import { recordSecurityEvent } from '../security/security-events';
 import {
   MFA_SECRETS,
   toUserDto,
@@ -88,6 +90,7 @@ export class AuthService {
         name: input.name,
         email: input.email,
         passwordHash: await hashPassword(input.password),
+        language: input.language,
       });
       return this.issueSession(user, meta);
     } catch (err) {
@@ -119,6 +122,7 @@ export class AuthService {
     assertNotLocked(user);
 
     if (!(await verifyPassword(input.password, user.passwordHash))) {
+      await recordSecurityEvent(user._id, 'SIGN_IN_FAILED', meta);
       await recordFailedAttempt(user._id);
       throw invalidCredentials();
     }
@@ -141,7 +145,12 @@ export class AuthService {
     meta: ClientMeta,
   ): Promise<Session> {
     const user = await this.userForChallenge(mfaToken, 'VERIFY');
-    await this.mfa.requireCode(user, code);
+    try {
+      await this.mfa.requireCode(user, code);
+    } catch (err) {
+      await recordSecurityEvent(user._id, 'SIGN_IN_FAILED', meta);
+      throw err;
+    }
     await this.markLoggedIn(user);
     return this.issueSession(user, meta, { mfa: true });
   }
@@ -158,7 +167,7 @@ export class AuthService {
     meta: ClientMeta,
   ): Promise<{ session: Session; backupCodes: string[] }> {
     const user = await this.userForChallenge(mfaToken, 'ENROLL');
-    const backupCodes = await this.mfa.confirmSetup(user.id, code);
+    const backupCodes = await this.mfa.confirmSetup(user.id, code, meta);
     await this.markLoggedIn(user);
     const updated = await UserModel.findById(user._id);
     if (!updated) throw challengeExpired();
@@ -205,6 +214,11 @@ export class AuthService {
           { userId: reused.userId },
           { $set: { revokedAt: now }, $unset: { rotatedAt: '' } },
         );
+        await recordSecurityEvent(
+          reused.userId,
+          'STOLEN_SESSION_BLOCKED',
+          meta,
+        );
       }
       throw sessionExpired();
     }
@@ -225,6 +239,19 @@ export class AuthService {
 
   async getUser(userId: string): Promise<UserDto> {
     const user = await UserModel.findById(userId);
+    if (!user) throw HttpError.unauthorized();
+    return toUserDto(user);
+  }
+
+  async updateProfile(
+    userId: string,
+    changes: UpdateProfileRequest,
+  ): Promise<UserDto> {
+    const user = await UserModel.findByIdAndUpdate(
+      userId,
+      { $set: { language: changes.language } },
+      { returnDocument: 'after' },
+    );
     if (!user) throw HttpError.unauthorized();
     return toUserDto(user);
   }
@@ -282,6 +309,10 @@ export class AuthService {
       userAgent: meta.userAgent,
       ip: meta.ip,
     });
+    // A new sign-in (not a refresh of an existing one) goes in the activity list.
+    if (!context.sessionId) {
+      await recordSecurityEvent(user._id, 'SIGNED_IN', { ...meta, sessionId });
+    }
 
     return {
       accessToken: signAccessToken(

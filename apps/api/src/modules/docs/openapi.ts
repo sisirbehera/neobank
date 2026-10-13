@@ -32,8 +32,11 @@ import {
   MoneyMovementRequestSchema,
   MoneyMovementResponseSchema,
   MonthlySummarySchema,
+  NotificationsPageSchema,
+  NotificationSummarySchema,
   OpenAccountRequestSchema,
   RegisterRequestSchema,
+  SecurityEventDtoSchema,
   SessionDtoSchema,
   STEP_UP_HEADER,
   StepUpRequestSchema,
@@ -41,6 +44,7 @@ import {
   TransferRequestSchema,
   TransferResponseSchema,
   UpdateAccountStatusRequestSchema,
+  UpdateProfileRequestSchema,
   UserDtoSchema,
 } from '@neobank/shared/models';
 
@@ -171,6 +175,15 @@ const operations: Operation[] = [
     auth: 'bearer',
     response: UserDtoSchema,
   },
+  {
+    method: 'patch',
+    path: '/auth/me',
+    tag: 'Auth',
+    summary: 'Change profile settings (preferred language)',
+    auth: 'bearer',
+    body: UpdateProfileRequestSchema,
+    response: UserDtoSchema,
+  },
 
   // ---- Security
   {
@@ -250,6 +263,50 @@ const operations: Operation[] = [
     path: '/security/sessions/{id}',
     tag: 'Security',
     summary: 'Sign out one device',
+    auth: 'bearer',
+    response: null,
+    status: 204,
+  },
+  {
+    method: 'get',
+    path: '/security/activity',
+    tag: 'Security',
+    summary: 'Recent sign-ins and security changes (newest first, up to 30)',
+    auth: 'bearer',
+    response: m.array(SecurityEventDtoSchema),
+  },
+
+  // ---- Notifications
+  {
+    method: 'get',
+    path: '/notifications',
+    tag: 'Notifications',
+    summary: 'Newest 20 notifications and the unread count',
+    auth: 'bearer',
+    response: NotificationsPageSchema,
+  },
+  {
+    method: 'get',
+    path: '/notifications/summary',
+    tag: 'Notifications',
+    summary: 'Unread count and newest id (polled by the web app)',
+    auth: 'bearer',
+    response: NotificationSummarySchema,
+  },
+  {
+    method: 'post',
+    path: '/notifications/{id}/read',
+    tag: 'Notifications',
+    summary: 'Mark one notification as read',
+    auth: 'bearer',
+    response: null,
+    status: 204,
+  },
+  {
+    method: 'post',
+    path: '/notifications/read-all',
+    tag: 'Notifications',
+    summary: 'Mark every notification as read',
     auth: 'bearer',
     response: null,
     status: 204,

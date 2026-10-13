@@ -1,4 +1,5 @@
 import { HttpError } from '../../lib/http-error';
+import { recordSecurityEvent } from '../security/security-events';
 import { type UserDocument, UserModel } from '../users/user.model';
 
 /**
@@ -17,6 +18,9 @@ export function assertNotLocked(user: UserDocument): void {
       423,
       'ACCOUNT_LOCKED',
       `Too many failed attempts. Try again in ${minutes} minute(s).`,
+      undefined,
+      // The web app words the message in its own language from these.
+      { minutes: String(minutes) },
     );
   }
 }
@@ -39,6 +43,7 @@ export async function recordFailedAttempt(userId: unknown): Promise<void> {
         },
       },
     );
+    await recordSecurityEvent(updated._id, 'ACCOUNT_LOCKED');
   }
 }
 

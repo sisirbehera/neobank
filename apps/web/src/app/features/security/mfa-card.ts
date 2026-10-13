@@ -37,13 +37,16 @@ type Mode = 'idle' | 'setup' | 'codes' | 'disable' | 'regenerate';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <nb-card title="Two-step verification">
+    <nb-card
+      title="Two-step verification"
+      i18n-title="@@common.twoStepVerification"
+    >
       <span
         cardActions
         class="badge"
         [class.text-bg-success]="auth.user()?.mfaEnabled"
         [class.text-bg-secondary]="!auth.user()?.mfaEnabled"
-        >{{ auth.user()?.mfaEnabled ? 'On' : 'Off' }}</span
+        >{{ auth.user()?.mfaEnabled ? on : off }}</span
       >
       @if (auth.user(); as user) {
         @if (error(); as error) {
@@ -68,7 +71,7 @@ type Mode = 'idle' | 'setup' | 'codes' | 'disable' | 'regenerate';
           }
           @case ('disable') {
             <form [formGroup]="disableForm" (ngSubmit)="disable()" novalidate>
-              <nb-form-field label="Password">
+              <nb-form-field label="Password" i18n-label="@@common.password">
                 <input
                   nbInput
                   id="disablePassword"
@@ -77,7 +80,10 @@ type Mode = 'idle' | 'setup' | 'codes' | 'disable' | 'regenerate';
                   formControlName="password"
                 />
               </nb-form-field>
-              <nb-form-field label="Code from your app (or a backup code)">
+              <nb-form-field
+                label="Code from your app (or a backup code)"
+                i18n-label="@@mfa.codeOrBackupLabel"
+              >
                 <input
                   nbInput
                   id="disableCode"
@@ -92,6 +98,7 @@ type Mode = 'idle' | 'setup' | 'codes' | 'disable' | 'regenerate';
                   type="submit"
                   variant="danger"
                   [loading]="pending()"
+                  i18n="@@mfa.turnOff"
                 >
                   Turn off
                 </button>
@@ -100,6 +107,7 @@ type Mode = 'idle' | 'setup' | 'codes' | 'disable' | 'regenerate';
                   type="button"
                   variant="outline-secondary"
                   (click)="reset()"
+                  i18n="@@common.cancel"
                 >
                   Cancel
                 </button>
@@ -108,11 +116,14 @@ type Mode = 'idle' | 'setup' | 'codes' | 'disable' | 'regenerate';
           }
           @case ('regenerate') {
             <form [formGroup]="codeForm" (ngSubmit)="regenerate()" novalidate>
-              <p class="small">
+              <p class="small" i18n="@@mfa.regenerateWarning">
                 New codes replace your old ones (any unused old codes stop
                 working).
               </p>
-              <nb-form-field label="Code from your app">
+              <nb-form-field
+                label="Code from your app"
+                i18n-label="@@mfa.codeLabel"
+              >
                 <input
                   nbInput
                   id="regenerateCode"
@@ -122,7 +133,12 @@ type Mode = 'idle' | 'setup' | 'codes' | 'disable' | 'regenerate';
                 />
               </nb-form-field>
               <div class="d-flex gap-2">
-                <button nbButton type="submit" [loading]="pending()">
+                <button
+                  nbButton
+                  type="submit"
+                  [loading]="pending()"
+                  i18n="@@mfa.regenerateSubmit"
+                >
                   Generate new codes
                 </button>
                 <button
@@ -130,6 +146,7 @@ type Mode = 'idle' | 'setup' | 'codes' | 'disable' | 'regenerate';
                   type="button"
                   variant="outline-secondary"
                   (click)="reset()"
+                  i18n="@@common.cancel"
                 >
                   Cancel
                 </button>
@@ -138,7 +155,7 @@ type Mode = 'idle' | 'setup' | 'codes' | 'disable' | 'regenerate';
           }
           @default {
             @if (user.mfaEnabled) {
-              <p class="small">
+              <p class="small" i18n="@@mfa.enabledText">
                 You'll enter a code from your authenticator app when you sign
                 in, add a beneficiary, or send more than ₹10,000 to someone
                 else.
@@ -148,11 +165,15 @@ type Mode = 'idle' | 'setup' | 'codes' | 'disable' | 'regenerate';
                   nbButton
                   variant="outline-primary"
                   (click)="mode.set('regenerate')"
+                  i18n="@@mfa.regenerate"
                 >
                   New backup codes
                 </button>
                 @if (user.role === 'admin') {
-                  <small class="text-body-secondary align-self-center">
+                  <small
+                    class="text-body-secondary align-self-center"
+                    i18n="@@mfa.requiredForAdmins"
+                  >
                     Required for admin accounts.
                   </small>
                 } @else {
@@ -160,17 +181,23 @@ type Mode = 'idle' | 'setup' | 'codes' | 'disable' | 'regenerate';
                     nbButton
                     variant="outline-secondary"
                     (click)="mode.set('disable')"
+                    i18n="@@mfa.turnOff"
                   >
                     Turn off
                   </button>
                 }
               </div>
             } @else {
-              <p class="small">
+              <p class="small" i18n="@@mfa.disabledText">
                 Protect your account with a code from an authenticator app,
                 asked when you sign in and before risky actions.
               </p>
-              <button nbButton [loading]="pending()" (click)="startSetup()">
+              <button
+                nbButton
+                [loading]="pending()"
+                (click)="startSetup()"
+                i18n="@@mfa.setUp"
+              >
                 Set up
               </button>
             }
@@ -191,11 +218,22 @@ export class MfaCard {
   protected readonly pending = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly notice = signal<string | null>(null);
+  protected readonly on = $localize`:Two-step verification status@@mfa.statusOn:On`;
+  protected readonly off = $localize`:Two-step verification status@@mfa.statusOff:Off`;
 
   protected readonly disableForm = this.fb.group({
     password: [
       '',
-      zodValidator(z.string().check(z.minLength(1, 'Password is required'))),
+      zodValidator(
+        z
+          .string()
+          .check(
+            z.minLength(
+              1,
+              $localize`:@@validation.passwordRequired:Password is required`,
+            ),
+          ),
+      ),
     ],
     code: ['', zodValidator(MfaCodeSchema)],
   });
@@ -224,7 +262,9 @@ export class MfaCard {
       await firstValueFrom(this.api.mfaDisable(this.disableForm.getRawValue()));
       this.auth.setMfaEnabled(false);
       this.reset();
-      this.notice.set('Two-step verification is off.');
+      this.notice.set(
+        $localize`:@@mfa.disabledNotice:Two-step verification is off.`,
+      );
     }, this.disableForm);
   }
 

@@ -9,6 +9,7 @@ import { hashPassword, verifyPassword } from '../auth/password';
 import { RefreshTokenModel } from '../auth/refresh-token.model';
 import { isDemoAccount } from '../users/demo-account';
 import { UserModel } from '../users/user.model';
+import { type EventContext, recordSecurityEvent } from './security-events';
 
 /** Password changes and the "where am I signed in" list. */
 export class SecurityService {
@@ -18,7 +19,7 @@ export class SecurityService {
    */
   async changePassword(
     userId: string,
-    currentSessionId: string,
+    context: EventContext & { sessionId: string },
     { currentPassword, newPassword }: ChangePasswordRequest,
   ): Promise<void> {
     const user = await UserModel.findById(userId).select('+passwordHash');
@@ -34,7 +35,8 @@ export class SecurityService {
     user.passwordHash = await hashPassword(newPassword);
     await user.save();
     await clearFailedAttempts(user._id);
-    await this.revoke(userId, { sessionId: { $ne: currentSessionId } });
+    await this.revoke(userId, { sessionId: { $ne: context.sessionId } });
+    await recordSecurityEvent(userId, 'PASSWORD_CHANGED', context);
   }
 
   /** One row per signed-in device (the newest token of each session). */
@@ -68,13 +70,22 @@ export class SecurityService {
   }
 
   /** Signs out one device. Its access token still works for up to 15 minutes. */
-  async revokeSession(userId: string, sessionId: string): Promise<void> {
+  async revokeSession(
+    userId: string,
+    sessionId: string,
+    context: EventContext = {},
+  ): Promise<void> {
     const revoked = await this.revoke(userId, { sessionId });
     if (revoked === 0) throw HttpError.notFound('Session not found');
+    await recordSecurityEvent(userId, 'DEVICE_SIGNED_OUT', context);
   }
 
-  async revokeOtherSessions(userId: string, currentSessionId: string) {
-    await this.revoke(userId, { sessionId: { $ne: currentSessionId } });
+  async revokeOtherSessions(
+    userId: string,
+    context: EventContext & { sessionId: string },
+  ): Promise<void> {
+    await this.revoke(userId, { sessionId: { $ne: context.sessionId } });
+    await recordSecurityEvent(userId, 'OTHER_DEVICES_SIGNED_OUT', context);
   }
 
   private async revoke(

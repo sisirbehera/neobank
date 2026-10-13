@@ -1,4 +1,5 @@
-import { computed, inject } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { computed, inject, PLATFORM_ID } from '@angular/core';
 import {
   patchState,
   signalStore,
@@ -49,101 +50,114 @@ export const AuthStore = signalStore(
     isAuthenticated: computed(() => status() === 'authenticated'),
     isAdmin: computed(() => user()?.role === 'admin'),
   })),
-  withMethods((store, api = inject(AuthApi)) => {
-    const setSession = ({ user, accessToken }: AuthResponse) =>
-      patchState(store, { user, accessToken, status: 'authenticated' });
+  withMethods(
+    (store, api = inject(AuthApi), platformId = inject(PLATFORM_ID)) => {
+      const setSession = ({ user, accessToken }: AuthResponse) =>
+        patchState(store, { user, accessToken, status: 'authenticated' });
 
-    const clearSession = () =>
-      patchState(store, { user: null, accessToken: null, status: 'anonymous' });
+      const clearSession = () =>
+        patchState(store, {
+          user: null,
+          accessToken: null,
+          status: 'anonymous',
+        });
 
-    // Shared so that parallel 401s trigger a single /refresh call.
-    let refreshInFlight$: Observable<string> | null = null;
+      // Shared so that parallel 401s trigger a single /refresh call.
+      let refreshInFlight$: Observable<string> | null = null;
 
-    return {
-      /**
-       * Step 1. Resolves to null when signed in, or to a challenge when a
-       * second step (code / 2FA setup) is needed. Errors propagate to the form.
-       */
-      async login(credentials: LoginRequest): Promise<MfaChallenge | null> {
-        const result = await firstValueFrom(api.login(credentials));
-        if ('mfaRequired' in result) return result;
-        setSession(result);
-        return null;
-      },
+      return {
+        /**
+         * Step 1. Resolves to null when signed in, or to a challenge when a
+         * second step (code / 2FA setup) is needed. Errors propagate to the form.
+         */
+        async login(credentials: LoginRequest): Promise<MfaChallenge | null> {
+          const result = await firstValueFrom(api.login(credentials));
+          if ('mfaRequired' in result) return result;
+          setSession(result);
+          return null;
+        },
 
-      /** Step 2: a code from the authenticator app (or a backup code). */
-      async verifyMfa(mfaToken: string, code: string): Promise<void> {
-        setSession(await firstValueFrom(api.verifyMfa(mfaToken, code)));
-      },
+        /** Step 2: a code from the authenticator app (or a backup code). */
+        async verifyMfa(mfaToken: string, code: string): Promise<void> {
+          setSession(await firstValueFrom(api.verifyMfa(mfaToken, code)));
+        },
 
-      /** Admin's first sign-in: get the QR code to scan. */
-      enrollStart(mfaToken: string): Promise<MfaSetupResponse> {
-        return firstValueFrom(api.enrollStart(mfaToken));
-      },
+        /** Admin's first sign-in: get the QR code to scan. */
+        enrollStart(mfaToken: string): Promise<MfaSetupResponse> {
+          return firstValueFrom(api.enrollStart(mfaToken));
+        },
 
-      /** Finish setup: starts the session and returns the backup codes. */
-      async enrollConfirm(mfaToken: string, code: string): Promise<string[]> {
-        const { backupCodes, ...session } = await firstValueFrom(
-          api.enrollConfirm(mfaToken, code),
-        );
-        setSession(session);
-        return backupCodes;
-      },
+        /** Finish setup: starts the session and returns the backup codes. */
+        async enrollConfirm(mfaToken: string, code: string): Promise<string[]> {
+          const { backupCodes, ...session } = await firstValueFrom(
+            api.enrollConfirm(mfaToken, code),
+          );
+          setSession(session);
+          return backupCodes;
+        },
 
-      /** Keeps the user's 2FA flag in sync after the Security page changes it. */
-      setMfaEnabled(mfaEnabled: boolean): void {
-        const user = store.user();
-        if (user) patchState(store, { user: { ...user, mfaEnabled } });
-      },
+        /** Keeps the user's 2FA flag in sync after the Security page changes it. */
+        setMfaEnabled(mfaEnabled: boolean): void {
+          const user = store.user();
+          if (user) patchState(store, { user: { ...user, mfaEnabled } });
+        },
 
-      async register(details: RegisterRequest): Promise<void> {
-        setSession(await firstValueFrom(api.register(details)));
-      },
+        /** Mirrors a profile change the API has accepted. */
+        patchUser(changes: Partial<UserDto>): void {
+          const user = store.user();
+          if (user) patchState(store, { user: { ...user, ...changes } });
+        },
 
-      async logout(): Promise<void> {
-        try {
-          await firstValueFrom(api.logout());
-        } catch {
-          // Even if the server call fails, forget the session locally.
-        } finally {
-          clearSession();
-        }
-      },
+        async register(details: RegisterRequest): Promise<void> {
+          setSession(await firstValueFrom(api.register(details)));
+        },
 
-      /** Runs once at startup: the refresh cookie (if any) brings the session back. */
-      async restoreSession(): Promise<void> {
-        // The refresh cookie is httpOnly (invisible to JS); the API also sets
-        // a secret-free "nb_session" hint. No hint → certainly signed out:
-        // skip the round trip, render sooner, and avoid a 401 in the console.
-        if (!hasSessionHint()) {
-          clearSession();
-          return;
-        }
-        try {
-          setSession(await firstValueFrom(api.refresh()));
-        } catch {
-          clearSession();
-        }
-      },
-
-      /** Used by the interceptor when an access token expires. */
-      refreshAccessToken(): Observable<string> {
-        refreshInFlight$ ??= api.refresh().pipe(
-          tap(setSession),
-          map((session) => session.accessToken),
-          catchError((err) => {
+        async logout(): Promise<void> {
+          try {
+            await firstValueFrom(api.logout());
+          } catch {
+            // Even if the server call fails, forget the session locally.
+          } finally {
             clearSession();
-            return throwError(() => err);
-          }),
-          finalize(() => (refreshInFlight$ = null)),
-          shareReplay(1),
-        );
-        return refreshInFlight$;
-      },
+          }
+        },
 
-      clearSession,
-    };
-  }),
+        /** Runs once at startup: the refresh cookie (if any) brings the session back. */
+        async restoreSession(): Promise<void> {
+          // The refresh cookie is httpOnly (invisible to JS); the API also sets
+          // a secret-free "nb_session" hint. No hint → certainly signed out:
+          // skip the round trip, render sooner, and avoid a 401 in the console.
+          // Pages built ahead of time are always built signed out.
+          if (!isPlatformBrowser(platformId) || !hasSessionHint()) {
+            clearSession();
+            return;
+          }
+          try {
+            setSession(await firstValueFrom(api.refresh()));
+          } catch {
+            clearSession();
+          }
+        },
+
+        /** Used by the interceptor when an access token expires. */
+        refreshAccessToken(): Observable<string> {
+          refreshInFlight$ ??= api.refresh().pipe(
+            tap(setSession),
+            map((session) => session.accessToken),
+            catchError((err) => {
+              clearSession();
+              return throwError(() => err);
+            }),
+            finalize(() => (refreshInFlight$ = null)),
+            shareReplay(1),
+          );
+          return refreshInFlight$;
+        },
+
+        clearSession,
+      };
+    },
+  ),
 );
 
 function hasSessionHint(): boolean {

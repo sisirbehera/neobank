@@ -1,0 +1,35 @@
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Button } from '@neobank/web/ui';
+import { AuthStore } from '../../core/auth/auth.store';
+
+/** Any URL the app doesn't know: say so, instead of silently going home. */
+@Component({
+  selector: 'nb-not-found',
+  imports: [RouterLink, Button],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <div class="text-center py-5">
+      <p class="display-4 fw-semibold text-body-secondary mb-2">404</p>
+      <h1 class="h3" i18n="@@notFound.title">Page not found</h1>
+      <p class="text-body-secondary mb-4" i18n="@@notFound.text">
+        There's no page at <code>{{ path }}</code
+        >. Check the address, or go back to where you were.
+      </p>
+      @if (auth.isAuthenticated()) {
+        <a nbButton routerLink="/dashboard" i18n="@@common.goToDashboard"
+          >Go to dashboard</a
+        >
+      } @else {
+        <a nbButton routerLink="/" i18n="@@notFound.goToHomePage"
+          >Go to home page</a
+        >
+      }
+    </div>
+  `,
+})
+export class NotFound {
+  protected readonly auth = inject(AuthStore);
+  /** The segments the catch-all route matched, i.e. the unknown path. */
+  protected readonly path = '/' + inject(ActivatedRoute).snapshot.url.join('/');
+}

@@ -59,7 +59,7 @@ type Step = 'password' | 'code' | 'enroll' | 'backup-codes';
           @switch (step()) {
             @case ('password') {
               <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-                <nb-form-field label="Email">
+                <nb-form-field label="Email" i18n-label="@@common.email">
                   <input
                     nbInput
                     id="email"
@@ -68,7 +68,7 @@ type Step = 'password' | 'code' | 'enroll' | 'backup-codes';
                     formControlName="email"
                   />
                 </nb-form-field>
-                <nb-form-field label="Password">
+                <nb-form-field label="Password" i18n-label="@@common.password">
                   <input
                     nbInput
                     id="password"
@@ -82,12 +82,16 @@ type Step = 'password' | 'code' | 'enroll' | 'backup-codes';
                   type="submit"
                   class="w-100"
                   [loading]="pending()"
+                  i18n="@@login.submit"
                 >
                   Log in
                 </button>
               </form>
 
-              <p class="mt-3 mb-0 text-center small">
+              <p
+                class="mt-3 mb-0 text-center small"
+                i18n="@@login.registerPrompt"
+              >
                 New to NeoBank? <a routerLink="/register">Open an account</a>
               </p>
 
@@ -97,7 +101,7 @@ type Step = 'password' | 'code' | 'enroll' | 'backup-codes';
                 <div
                   class="alert alert-info small mt-3 mb-0 d-flex flex-wrap gap-2 align-items-center"
                 >
-                  <span>
+                  <span i18n="@@login.demoHint">
                     Just looking? Use the demo account
                     <strong>{{ demo.email }}</strong> /
                     <strong>{{ demo.password }}</strong
@@ -107,6 +111,7 @@ type Step = 'password' | 'code' | 'enroll' | 'backup-codes';
                     type="button"
                     class="btn btn-sm btn-outline-primary"
                     (click)="useDemo()"
+                    i18n="@@login.demoFill"
                   >
                     Fill in
                   </button>
@@ -115,13 +120,15 @@ type Step = 'password' | 'code' | 'enroll' | 'backup-codes';
             }
 
             @case ('code') {
-              <p class="small">
+              <p class="small" i18n="@@login.mfaPrompt">
                 Enter the 6-digit code from your authenticator app.
               </p>
               <form [formGroup]="codeForm" (ngSubmit)="verify()" novalidate>
                 <nb-form-field
                   label="Verification code"
+                  i18n-label="@@login.verificationCode"
                   hint="Lost your phone? Enter one of your backup codes."
+                  i18n-hint="@@login.mfaHint"
                 >
                   <input
                     nbInput
@@ -136,6 +143,7 @@ type Step = 'password' | 'code' | 'enroll' | 'backup-codes';
                   type="submit"
                   class="w-100"
                   [loading]="pending()"
+                  i18n="@@login.verify"
                 >
                   Verify
                 </button>
@@ -144,13 +152,14 @@ type Step = 'password' | 'code' | 'enroll' | 'backup-codes';
                 type="button"
                 class="btn btn-link btn-sm mt-2 px-0"
                 (click)="restart()"
+                i18n="@@login.restart"
               >
                 ← Use a different account
               </button>
             }
 
             @case ('enroll') {
-              <p class="small">
+              <p class="small" i18n="@@login.adminEnrollPrompt">
                 Admin accounts must use two-step verification. Set it up now to
                 continue.
               </p>
@@ -188,10 +197,10 @@ export class Login {
   protected readonly title = computed(
     () =>
       ({
-        password: 'Log in to NeoBank',
-        code: 'Two-step verification',
-        enroll: 'Set up two-step verification',
-        'backup-codes': 'Your backup codes',
+        password: $localize`:@@login.title:Log in to NeoBank`,
+        code: $localize`:@@common.twoStepVerification:Two-step verification`,
+        enroll: $localize`:@@login.enrollTitle:Set up two-step verification`,
+        'backup-codes': $localize`:@@login.backupCodesTitle:Your backup codes`,
       })[this.step()],
   );
 

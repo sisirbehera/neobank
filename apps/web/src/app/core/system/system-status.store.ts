@@ -1,4 +1,5 @@
-import { computed, inject } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { computed, inject, PLATFORM_ID } from '@angular/core';
 import { tapResponse } from '@ngrx/operators';
 import {
   patchState,
@@ -44,7 +45,7 @@ export const SystemStatusStore = signalStore(
                 patchState(store, {
                   health: null,
                   loading: false,
-                  error: 'The API is not reachable.',
+                  error: $localize`:@@home.apiUnreachable:The API is not reachable.`,
                 }),
             }),
           ),
@@ -54,7 +55,8 @@ export const SystemStatusStore = signalStore(
   })),
   withHooks({
     onInit(store) {
-      store.load();
+      // Live status: never baked into a page built ahead of time.
+      if (isPlatformBrowser(inject(PLATFORM_ID))) store.load();
     },
   }),
 );

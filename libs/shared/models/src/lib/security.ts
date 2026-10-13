@@ -135,3 +135,31 @@ export const SessionDtoSchema = z.object({
   mfa: z.boolean(),
 });
 export type SessionDto = z.infer<typeof SessionDtoSchema>;
+
+// ---- Security activity --------------------------------------------------------
+
+export const SecurityEventTypeSchema = z.enum([
+  'SIGNED_IN',
+  'SIGN_IN_FAILED',
+  'ACCOUNT_LOCKED',
+  'PASSWORD_CHANGED',
+  'MFA_ENABLED',
+  'MFA_DISABLED',
+  'BACKUP_CODES_REGENERATED',
+  'DEVICE_SIGNED_OUT',
+  'OTHER_DEVICES_SIGNED_OUT',
+  /** A refresh token came back after it was replaced: every device signed out. */
+  'STOLEN_SESSION_BLOCKED',
+]);
+export type SecurityEventType = z.infer<typeof SecurityEventTypeSchema>;
+
+export const SecurityEventDtoSchema = z.object({
+  id: z.string(),
+  type: SecurityEventTypeSchema,
+  userAgent: z.string(),
+  ip: z.string(),
+  createdAt: z.iso.datetime(),
+  /** Happened in the session that is asking. */
+  current: z.boolean(),
+});
+export type SecurityEventDto = z.infer<typeof SecurityEventDtoSchema>;

@@ -4,6 +4,7 @@ import {
   computed,
   inject,
   signal,
+  LOCALE_ID,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import type { LedgerEntryDto, MonthlySummary } from '@neobank/shared/models';
@@ -23,16 +24,6 @@ import { HistoryApi } from '../../core/history/history.api';
 import { ActivityList } from '../accounts/activity-list';
 import { ACCOUNT_TYPE_LABELS } from '../accounts/labels';
 
-const SHORT_MONTH = new Intl.DateTimeFormat('en-IN', {
-  month: 'short',
-  timeZone: 'Asia/Kolkata',
-});
-const LONG_MONTH = new Intl.DateTimeFormat('en-IN', {
-  month: 'long',
-  year: 'numeric',
-  timeZone: 'Asia/Kolkata',
-});
-
 @Component({
   selector: 'nb-dashboard',
   imports: [
@@ -49,9 +40,13 @@ const LONG_MONTH = new Intl.DateTimeFormat('en-IN', {
     <header
       class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4"
     >
-      <h1 class="h3 mb-0">Hello, {{ auth.user()?.name }}</h1>
+      <h1 class="h3 mb-0" i18n="@@dashboard.hello">
+        Hello, {{ auth.user()?.name }}
+      </h1>
       @if (accounts.canOpenMore() && accounts.entities().length > 0) {
-        <a nbButton routerLink="/accounts/new">Open account</a>
+        <a nbButton routerLink="/accounts/new" i18n="@@common.openAccount"
+          >Open account</a
+        >
       }
     </header>
 
@@ -62,33 +57,45 @@ const LONG_MONTH = new Intl.DateTimeFormat('en-IN', {
           type="button"
           class="btn btn-link p-0 ms-2"
           (click)="accounts.load(true)"
+          i18n="@@dashboard.retry"
         >
           Retry
         </button>
       </div>
     } @else if (!accounts.loaded()) {
-      <p class="text-body-secondary">Loading your accounts…</p>
+      <p class="text-body-secondary" i18n="@@dashboard.loading">
+        Loading your accounts…
+      </p>
     } @else if (accounts.entities().length === 0) {
       <section class="card shadow-sm">
         <div class="card-body text-center py-5">
-          <h2 class="h5">You don't have any accounts yet</h2>
-          <p class="text-body-secondary">
+          <h2 class="h5" i18n="@@dashboard.emptyTitle">
+            You don't have any accounts yet
+          </h2>
+          <p class="text-body-secondary" i18n="@@dashboard.emptyText">
             Open a savings or current account in seconds.
           </p>
-          <a nbButton routerLink="/accounts/new">Open your first account</a>
+          <a
+            nbButton
+            routerLink="/accounts/new"
+            i18n="@@dashboard.openFirstAccount"
+            >Open your first account</a
+          >
         </div>
       </section>
     } @else {
       <section class="card shadow-sm mb-4 border-0 nb-total">
         <div class="card-body">
-          <div class="small opacity-75">Total balance</div>
+          <div class="small opacity-75" i18n="@@dashboard.totalBalance">
+            Total balance
+          </div>
           <div class="display-6 fw-semibold" data-testid="total-balance">
             {{ accounts.totalBalance() | inr }}
           </div>
-          <div class="small opacity-75">
-            across {{ accounts.entities().length }}
-            {{ accounts.entities().length === 1 ? 'account' : 'accounts' }}
-          </div>
+          <!-- The plural must be the whole content (one message, one ID), so
+               prettier must not add line breaks around it. -->
+          <!-- prettier-ignore -->
+          <div class="small opacity-75" i18n="@@dashboard.accountCount">{accounts.entities().length, plural, =1 {across 1 account} other {across {{ accounts.entities().length }} accounts}}</div>
         </div>
       </section>
 
@@ -129,24 +136,35 @@ const LONG_MONTH = new Intl.DateTimeFormat('en-IN', {
         <div class="col-12 col-xl-7">
           <nb-card
             title="Money in and out"
+            i18n-title="@@dashboard.chartTitle"
             subtitle="Last 6 months · transfers between your own accounts excluded"
+            i18n-subtitle="@@dashboard.chartSubtitle"
           >
             @if (chart(); as c) {
               <nb-column-chart
                 caption="Money in and money out per month, last 6 months"
+                i18n-caption="@@dashboard.chartCaption"
                 [categories]="c.categories"
                 [series]="c.series"
                 [format]="formatInr"
                 [formatTick]="formatInrCompact"
               />
             } @else {
-              <p class="text-body-secondary mb-0">Loading…</p>
+              <p class="text-body-secondary mb-0" i18n="@@common.loading">
+                Loading…
+              </p>
             }
           </nb-card>
         </div>
         <div class="col-12 col-xl-5">
-          <nb-card title="Recent activity">
-            <a cardActions class="small" routerLink="/transactions">View all</a>
+          <nb-card title="Recent activity" i18n-title="@@common.recentActivity">
+            <a
+              cardActions
+              class="small"
+              routerLink="/transactions"
+              i18n="@@dashboard.viewAll"
+              >View all</a
+            >
             <nb-activity-list
               [entries]="activity()"
               [accounts]="accounts.entityMap()"
@@ -181,8 +199,20 @@ export class Dashboard {
 
   protected readonly typeLabels = ACCOUNT_TYPE_LABELS;
   protected readonly activity = signal<LedgerEntryDto[]>([]);
-  protected readonly formatInr = formatInr;
-  protected readonly formatInrCompact = formatInrCompact;
+  private readonly locale = inject(LOCALE_ID);
+  protected readonly formatInr = (paise: number) =>
+    formatInr(paise, this.locale);
+  protected readonly formatInrCompact = (paise: number) =>
+    formatInrCompact(paise, this.locale);
+  private readonly shortMonth = new Intl.DateTimeFormat(this.locale, {
+    month: 'short',
+    timeZone: 'Asia/Kolkata',
+  });
+  private readonly longMonth = new Intl.DateTimeFormat(this.locale, {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'Asia/Kolkata',
+  });
 
   private readonly summary = signal<MonthlySummary | null>(null);
   protected readonly chart = computed(() => {
@@ -192,13 +222,19 @@ export class Dashboard {
       categories: months.map(({ month }) => {
         const date = new Date(`${month}-15T12:00:00+05:30`);
         return {
-          label: SHORT_MONTH.format(date),
-          title: LONG_MONTH.format(date),
+          label: this.shortMonth.format(date),
+          title: this.longMonth.format(date),
         };
       }),
       series: [
-        { label: 'Money in', values: months.map((m) => m.inPaise) },
-        { label: 'Money out', values: months.map((m) => m.outPaise) },
+        {
+          label: $localize`:@@common.moneyIn:Money in`,
+          values: months.map((m) => m.inPaise),
+        },
+        {
+          label: $localize`:@@common.moneyOut:Money out`,
+          values: months.map((m) => m.outPaise),
+        },
       ],
     };
   });

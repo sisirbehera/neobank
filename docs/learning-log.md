@@ -16,6 +16,27 @@ What each day built, the concepts it taught, and the bugs we hit along the way. 
 
 Live since 2026-10-09 at https://neobank-sisir.onrender.com.
 
+## Week 2 at a glance
+
+| Day | Built                                                                            | Unit tests added | Browser tests |
+| --- | -------------------------------------------------------------------------------- | ---------------- | ------------- |
+| 8   | Security activity, toasts, idle sign-out, 404 page                               | 15               | 13            |
+| 9   | Public pages pre-built at build time and hydrated; CSP hashes for inline scripts | 3                | 15            |
+| 10  | English and Hindi (one build per language, readable message IDs), errors by code | 17               | 19            |
+| 11  | Notifications: bell, toasts, polling; stored as type and values                  | 11               | 20            |
+| 12  | Lighthouse before/after, layout-shift fix, local Docker check, demo script       | 0                | 20            |
+
+The week ended with 290 unit tests (from 244) and 20 browser tests (from 10). Lighthouse on the home page (mobile, slow 4G, same machine and method): performance 74 → 87, layout shift 0.139 → 0.001, accessibility, best practices and SEO still 100. Startup download 136 → 155 KB gzipped, now the same for each language.
+
+**The week's lessons in one line each:**
+
+- Test the gap between "visible" and "working": pre-built pages can be typed into before the app loads.
+- Every "protect the account" or "show the account" feature must ask what the shared demo login would do with it.
+- Store facts (codes, types, values), not sentences; let the reader's page word them.
+- A default must never be stored as if it were a choice.
+- Measure before and after on the same machine, the same day; old numbers mislead.
+- When a test fails in a way the change can't explain, check what is serving the requests (stale servers, shared build folders, a terminal sitting in `dist/`).
+
 ---
 
 ## Day 1: foundations
@@ -126,3 +147,116 @@ Live since 2026-10-09 at https://neobank-sisir.onrender.com.
 - **Atlas region:** Mumbai has no free tier, and Singapore is better anyway: the database should sit next to the server, and Render has no India region.
 - **Keeping the free tier alive:** a weekly GitHub Actions workflow smoke-tests the live app, which also keeps the Atlas cluster active.
 - **The shared demo login could be hijacked.** Any visitor could change its password or turn on its 2FA and lock everyone else out, or lock it for 15 minutes by typing wrong passwords; its devices list also showed other visitors' IP addresses. Found while writing the runbook, fixed first thing on Day 8 with a `demo` flag on the user. **Lesson:** a shared account is a different kind of user, and every "protect the account" feature can be turned against the people sharing it.
+
+## Day 8: polish
+
+**Built:** a security activity list (API and Security page), toasts, idle logout with a warning, and a 404 page.
+
+**Concepts**
+
+- **An activity log is not an audit log.** The admin audit log records what staff changed, for the bank. Security activity is the customer's own history, written for them: "was that sign-in me?". It records new sign-ins only, not every token refresh, or the list would be noise. Rows expire after 90 days through a TTL index, the same mechanism that deletes expired refresh tokens.
+- **The shared demo login, again:** a list of failed sign-ins with IP addresses would show every visitor the others' attempts. A demo login sees only its own session's rows. Every new screen that lists "your" data needs that check.
+- **Idle logout across tabs:** all tabs share one sign-in, so a forgotten tab must not sign you out while you work in another. The tabs share a last-activity timestamp in `localStorage`, and each compares the time elapsed instead of counting timer ticks, because browsers slow timers in hidden tabs and laptops sleep.
+- **Testing time without waiting:** Vitest fake timers move the clock in unit tests, and Playwright's `page.clock.fastForward('04:01')` does the same in a real browser. Five minutes of idling runs in under a second.
+- **Accessible toasts:** two live regions, so errors interrupt a screen reader and the rest wait their turn. A toast doesn't vanish while hovered or focused, and errors stay until closed.
+
+**Bugs**
+
+1. **Mocking `Date.now` doesn't change `new Date()`.** A test for stolen-token detection moved a fake clock forward, but the server compares `new Date()` values, so the grace period never ended. **Fix:** backdate `rotatedAt` in the database, as the existing auth tests do. **Lesson:** know which clock the code under test actually reads.
+2. **A spied router still navigates.** `vi.spyOn(router, 'navigateByUrl')` calls the real method, which failed on a route the test router doesn't have. **Fix:** `.mockResolvedValue(true)`. **Lesson:** a spy watches, a mock replaces; pick the one you mean.
+3. **The 404 page could show the previous address.** `Router.url` can still hold the old URL while the new page is being created. **Fix:** read the unknown path from the matched route's own segments (`ActivatedRoute.snapshot.url`).
+4. **An empty `role="alert"` broke an unrelated test.** The toast area is a permanent live region (screen readers only announce changes to a region they already know), and giving it `role="alert"` meant every page now had an extra, empty alert. A login test looking for "the alert" found two. **Fix:** `aria-live` on the regions, no role. **Lesson:** landmarks and roles are an API that both screen readers and tests rely on, so add them on purpose.
+
+## Day 9: rendering where it helps
+
+**Built:** home, log in and register pre-built at build time and hydrated in the browser; signed-in pages still rendered in the browser; the API serving each address its file and allowing the pages' inline scripts by hash ([0012](decisions/0012-prerender-public-pages.md)).
+
+**Concepts**
+
+- **Render modes are chosen per route.** _Prerender_ builds HTML once at build time, _Server_ renders on every request, _Client_ renders in the browser. A page that is the same for everyone suits Prerender. A banking page doesn't: the server doesn't know who is asking, and personal data must not end up in cacheable HTML.
+- **Hydration** reuses the server's HTML instead of drawing the page again. Angular attaches its listeners and state to the existing elements. If the browser's first render differs from the HTML (a different `@if` branch, for example), Angular replaces that part.
+- **Event replay** records clicks and typing made before the JavaScript arrives, and replays them once Angular is ready.
+- **Static output needs no server.** With `outputMode: "static"` the build writes plain files: one per pre-built page, plus `index.csr.html` for the rest. The existing Express app serves them.
+- **CSP hashes instead of `'unsafe-inline'`.** A hash allows one exact script. The API computes them from the built pages at startup, so they can't drift from the build.
+- **Code that runs while a page is being built must not touch browser-only APIs.** Session restore, the health check and timers are skipped there (`isPlatformBrowser`, `afterNextRender`).
+
+**Bugs a slow-network test caught**
+
+1. **Text typed before Angular loaded was wiped.** The form is visible early, so people can type into it. When Angular takes over, each form control writes its starting value (empty) into the field. **Fix:** the shared `nbInput` directive reads the field before that happens and puts the text back into the form.
+2. **An early click on "Log in" reloaded the page.** Before Angular has loaded, nothing stops the browser's own form submission (`GET /login?`). Event replay records the click but doesn't prevent the default action. **Fix:** the early script in `index.html` blocks native submits; Angular, which handles every form, gets the replayed submit. **Lesson:** test the gap between "visible" and "working". Holding back `main.js` in Playwright makes it easy to reproduce.
+3. **Signed-in visitors saw "Log in" buttons flash.** Pages are built signed out. **Fix:** the early script reads the `nb_session` hint cookie and hides signed-out buttons until Angular knows the answer.
+4. **Changing the early script broke nothing locally, but would have broken the live site** if the CSP hashes had been fixed in configuration. Computing them at startup, plus a smoke test that checks every inline script against the CSP, closes that gap.
+5. **The browser tests failed for reasons outside the code.** Playwright reused a dev server left running from the night before, which predated the SSR setup. Its API's sign-in rate-limit counter had also filled up across many runs, so registration got `429`. **Lesson:** when tests fail in a way the change can't explain, check what is actually serving the requests.
+
+## Day 10: English and Hindi
+
+**Built:** the customer screens in English and Hindi, under `/en/` and `/hi/`; a language switcher that keeps the page; the choice remembered on the device and on the profile; amounts, dates and chart labels per language; API and validation errors in the page's language ([0013](decisions/0013-built-in-i18n-per-language-builds.md)).
+
+**Concepts**
+
+- **Compile-time vs runtime translation.** Angular's built-in i18n bakes each language into its own build; libraries like Transloco look strings up while the app runs. Built-in means no lookup cost, pre-built pages in every language for free, and a build that fails on a missing translation. The price is a page reload when switching.
+- **Messages have IDs derived from their text.** `extract-i18n` collects every `i18n` attribute and `$localize` string into `messages.json`. Changing the English changes the ID, so the old translation stops matching, and the strict build says so.
+- **Placeholders and plurals.** A message keeps markup and values as placeholders (`{$START_LINK}`, `{$INTERPOLATION}`), so a translator can move them, as Hindi word order needs: "{$system} पर {$browser}". Counts use ICU plural syntax, `{n, plural, =1 {…} other {…}}`, because each language has its own plural rules.
+- **Codes and data for programs, messages for people.** The API keeps English messages for logs and the API docs. Each error also carries a code and, where needed, numbers in `meta`, and the browser writes the sentence in its language.
+- **Locale-aware formatting comes from `Intl`.** Hindi keeps Latin digits and lakh grouping, and has its own short forms: "₹85 हज़ार", "₹1.2 लाख". `Intl` puts a non-breaking space in "85 हज़ार", so the two parts never split across lines.
+- **The last explicit choice wins.** A device choice (cookie) beats the profile, and the profile beats the browser's default. A default must never be stored as if it were a choice.
+
+**Bugs**
+
+1. **Importing one function pulled the whole UI library into the first download (+17 KB).** `registerValidationMessages` came from `@neobank/web/ui`'s main entry, which also exports the chart and the forms. **Fix:** a second tiny entry point, `@neobank/web/ui/messages`, as Day 7 did for the theme. **Lesson:** read the bundle report after adding an import to the app shell.
+2. **Hydration silently stopped.** After the templates were marked for translation, Angular hydrated 0 components and redrew every page, so text typed before loading was lost again. Components with `i18n` blocks are only hydrated with `withI18nSupport()`. A slow-network browser test caught it; the console message "hydrated 0 component(s)" confirmed it.
+3. **A profile default would have overridden real choices.** Every user's language defaulted to `en`, so a Hindi visitor who never chose would be switched to English after signing in, including everyone on the shared demo login. **Fix:** the profile's language stays empty until the user chooses.
+4. **Two test servers shared one build folder.** The production test server built the API into `apps/api/dist`, where the dev API runs from. The dev API restarted on every such build and lost its in-memory database, so random registrations failed. **Fix:** an `e2e` build configuration with its own output folder. The esbuild executor's `--outputPath` override moved only `package.json`, not `main.js`, which is why it needed a named configuration.
+5. **Unit tests use Angular's default locale, `en-US`,** which formats ₹12,34,567 as ₹1,234,567. The app is built for `en-IN`, so the tests now set `LOCALE_ID` explicitly. Tests also load `@angular/localize/init`, which the app gets from its polyfills.
+
+## Day 10, follow-up: readable message IDs
+
+**Changed:** every message now has a hand-picked ID (`login.title`, `transfer.confirm`, `error.invalidCredentials`) instead of a generated number, after reviewing the Hindi showed that `"6972903818043702698": "लॉग इन · NeoBank"` says nothing about where a line appears.
+
+**Concepts**
+
+- **Generated vs custom IDs.** Angular's default ID is a hash of the English text (plus its meaning). It needs no naming, and any English change forces a new translation. Custom IDs (`@@login.title`) are readable and stable: a typo fix in English keeps its Hindi. The cost is that stale translations are no longer caught by the build, so a test checks the files instead.
+- **Renaming 315 messages safely.** The XLIFF export records the file and line of every message. A script named each one from its file and text (hand-picked names for about 180), inserted `@@id` at that spot, re-extracted, and moved each Hindi translation only if the English behind the old and the new ID was identical. All 314 matched.
+- **A plural alone in its element is one message.** With text or line breaks around it, Angular extracts a wrapper (`{$ICU}`) plus the plural, and the plural can't get a custom ID. Prettier puts line breaks back, so the element carries `<!-- prettier-ignore -->`.
+
+**Bugs**
+
+1. **The first rename attempt attached some IDs to the wrong elements.** It took the first matching `label=` near a line, and its search window didn't reach tags that start more than six lines above their text. Every match now has to agree with the message text, and a final check compares all IDs and texts against the plan.
+2. **A `Copy / Copied` button was never translated** (a `'Copied' : 'Copy'` string inside a template expression). Found while reading the rename diff.
+3. **A build "failed" because the terminal's working folder was inside `dist/`.** Windows won't delete a folder a program is using. Not a project problem, but worth recognising.
+
+## Day 11: notifications
+
+**Built:** in-app notifications for money received, sign-ins from new devices, security changes and frozen accounts; a bell with an unread badge in the navbar; toasts for new ones ([0014](decisions/0014-notifications-polling-type-and-values.md)).
+
+**Concepts**
+
+- **Store facts, not sentences.** A notification is `MONEY_RECEIVED` plus `{ amountPaise, from, account }`. The browser words it in the reader's language and formats the amount for it. The same row reads correctly in English and Hindi, and the wording can change later.
+- **Write the side effect in the same transaction.** The "money received" notification is created inside the transfer's MongoDB transaction: if the transfer rolls back, so does the notification. There is never a notification for money that didn't arrive.
+- **Polling, designed to be cheap.** One tiny summary request (unread count + newest id) per minute while the tab is visible, plus one when it becomes visible again. The full list is fetched only when the newest id changes. For events where a minute's delay is fine, this is simpler and sturdier than WebSockets on a server that sleeps.
+- **Only new things become toasts.** The first check after loading just records the newest id; older unread notifications show in the badge, not as a burst of toasts.
+- **`@defer` keeps optional UI out of the first download.** The bell is only for signed-in users, so it loads in its own 3 KB chunk once the browser is idle.
+- **One event can make cached data stale.** Money arriving changes a balance the app had cached. Notifications that change an account now refresh the accounts store, and the account page reloads its list when that account's balance or status changes.
+
+**Bugs**
+
+1. **The account page kept showing the old balance** after money arrived, even after clicking the notification: the router doesn't reload a page it is already on, and the balance came from a cache. The new browser test (two users in two browsers, the receiver's clock fast-forwarded a minute) caught it.
+2. **MongoDB can't index "field doesn't exist".** A partial index with `readAt: { $exists: false }` is rejected. An ordinary index on `(userId, readAt)` works, because a missing field is indexed as null, and the query uses `readAt: null`.
+3. **Mongoose refuses update pipelines unless asked** (the `updatePipeline` option). A plain conditional update (`readAt: null` in the filter) was clearer anyway.
+4. **Still open: one browser test failed once in four full runs** (a registration that didn't reach the dashboard). It didn't reproduce, not even with registration under load or submitted before Angular loaded. CI retries failed tests and records a trace, so a repeat there will show what happened.
+
+## Day 12: measuring the week
+
+**Done:** Lighthouse on the Week 1 and Week 2 production images, a fix for the last layout shift, the production Docker image run and smoke-tested locally, and the demo script rewritten for the new features.
+
+**Concepts**
+
+- **Compare like with like.** Day 7's scores (83–84) came from another machine state. Re-measuring Week 1 today gave 74–81. Both versions were built as Docker images and measured back to back with the same Lighthouse version, median of 3 runs.
+- **Pre-rendering fixed layout shift and blocking time, not first paint.** The browser paints nothing until the render-blocking stylesheet arrives, however complete the HTML is. The 34 KB Bootstrap stylesheet, 89% unused on these pages, is now the limit.
+- **Reserve space for content that arrives later.** The System status card grew from one line to four when the health check answered. Rendering the same four rows with placeholders took the layout shift from 0.058 to 0.001.
+
+**Bugs**
+
+1. **"Reset demo data" left the demo users' security activity and notifications behind** (new collections this week, not added to the reset). Found while checking the demo script. **Lesson:** a new collection that belongs to a user needs a place in every "delete this user's data" path.
+2. **Git Bash turned the URL path `/` into `C:/Program Files/Git/`** when passed to a program. `MSYS_NO_PATHCONV=1` turns that conversion off.
+3. **A grep for a backslash-backtick matched every line:** in GNU grep, `` \` `` means "start of the text". A sed built on the same pattern prefixed every line with a backtick; the file was restored from git.

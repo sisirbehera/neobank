@@ -20,11 +20,11 @@ import { Button, FormField, Input, zodValidator } from '@neobank/web/ui';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <ol class="ps-3 small">
-      <li class="mb-2">
+      <li class="mb-2" i18n="@@mfaSetup.scanStep">
         Open an authenticator app (Google Authenticator, Microsoft
         Authenticator, Authy, 1Password…) and scan this code.
       </li>
-      <li>Enter the 6-digit code it shows.</li>
+      <li i18n="@@mfaSetup.codeStep">Enter the 6-digit code it shows.</li>
     </ol>
 
     <div class="d-flex flex-wrap gap-3 align-items-center mb-3">
@@ -36,7 +36,9 @@ import { Button, FormField, Input, zodValidator } from '@neobank/web/ui';
         alt="QR code for your authenticator app"
       />
       <div class="small">
-        <div class="text-body-secondary">Can't scan? Enter this key:</div>
+        <div class="text-body-secondary" i18n="@@mfaSetup.manualKey">
+          Can't scan? Enter this key:
+        </div>
         <code
           class="d-block fs-6 user-select-all text-body"
           data-testid="mfa-secret"
@@ -50,7 +52,7 @@ import { Button, FormField, Input, zodValidator } from '@neobank/web/ui';
     }
 
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-      <nb-form-field label="6-digit code">
+      <nb-form-field label="6-digit code" i18n-label="@@mfaSetup.codeLabel">
         <input
           nbInput
           id="setupCode"
@@ -60,7 +62,12 @@ import { Button, FormField, Input, zodValidator } from '@neobank/web/ui';
           formControlName="code"
         />
       </nb-form-field>
-      <button nbButton type="submit" [loading]="pending()">
+      <button
+        nbButton
+        type="submit"
+        [loading]="pending()"
+        i18n="@@mfaSetup.submit"
+      >
         Turn on two-step verification
       </button>
     </form>

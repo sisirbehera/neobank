@@ -1,4 +1,5 @@
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -12,10 +13,26 @@ import {
 } from '@angular/router';
 import { ThemeSwitcher } from '@neobank/web/ui/theme';
 import { AuthStore } from './core/auth/auth.store';
+import { IdleLogoutService } from './core/auth/idle-logout.service';
+import { IdleWarning } from './core/auth/idle-warning';
+import { LanguageService } from './core/i18n/language.service';
+import { LanguageSwitcher } from './core/i18n/language-switcher';
+import { NotificationBell } from './core/notifications/notification-bell';
+import { ToastService } from './core/toast/toast.service';
+import { Toasts } from './core/toast/toasts';
 
 @Component({
   selector: 'nb-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ThemeSwitcher],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    ThemeSwitcher,
+    LanguageSwitcher,
+    NotificationBell,
+    Toasts,
+    IdleWarning,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <nav class="navbar nb-navbar" data-bs-theme="dark">
@@ -32,6 +49,11 @@ import { AuthStore } from './core/auth/auth.store';
                 >{{ link.label }}</a
               >
             }
+            <!-- Its own chunk, loaded once the browser is idle: signed-out
+                 visitors never download it. The bell starts the checks. -->
+            @defer (on idle) {
+              <nb-notification-bell />
+            }
             <span class="navbar-text small d-none d-sm-inline">{{
               auth.user()?.name
             }}</span>
@@ -39,17 +61,25 @@ import { AuthStore } from './core/auth/auth.store';
               type="button"
               class="btn btn-sm btn-outline-light"
               (click)="logout()"
+              i18n="@@nav.logOut"
             >
               Log out
             </button>
           } @else {
-            <a class="btn btn-sm btn-outline-light" routerLink="/login"
+            <a
+              class="btn btn-sm btn-outline-light nb-guest-only"
+              routerLink="/login"
+              i18n="@@common.logIn"
               >Log in</a
             >
-            <a class="btn btn-sm btn-light" routerLink="/register"
+            <a
+              class="btn btn-sm btn-light nb-guest-only"
+              routerLink="/register"
+              i18n="@@common.openAccount"
               >Open account</a
             >
           }
+          <nb-language-switcher />
           <nb-theme-switcher />
         </div>
       </div>
@@ -59,26 +89,54 @@ import { AuthStore } from './core/auth/auth.store';
       <router-outlet />
     </main>
 
-    <footer class="container pb-4 small text-body-secondary">
+    <footer
+      class="container pb-4 small text-body-secondary"
+      i18n="@@nav.footerDisclaimer"
+    >
       Demo application for learning – not a real bank. No real money moves.
     </footer>
+
+    <nb-toasts />
+    <nb-idle-warning />
   `,
 })
 export class App {
   protected readonly auth = inject(AuthStore);
   private readonly router = inject(Router);
+  private readonly toasts = inject(ToastService);
+
+  constructor() {
+    // Starts watching for inactivity whenever someone is signed in.
+    inject(IdleLogoutService);
+    // Applies the profile's language after signing in on a new device.
+    inject(LanguageService);
+    // The session is known now: show signed-out buttons again if they apply
+    // (index.html hid them while a session was likely).
+    afterNextRender(() =>
+      document.documentElement.removeAttribute('data-nb-session'),
+    );
+  }
 
   protected readonly links = computed(() => [
-    { path: '/dashboard', label: 'Dashboard' },
-    { path: '/transactions', label: 'Transactions' },
-    { path: '/transfer', label: 'Transfer' },
-    { path: '/beneficiaries', label: 'Beneficiaries' },
-    { path: '/security', label: 'Security' },
-    ...(this.auth.isAdmin() ? [{ path: '/admin', label: 'Admin' }] : []),
+    { path: '/dashboard', label: $localize`:@@nav.dashboard:Dashboard` },
+    {
+      path: '/transactions',
+      label: $localize`:@@common.transactions:Transactions`,
+    },
+    { path: '/transfer', label: $localize`:@@common.transfer:Transfer` },
+    {
+      path: '/beneficiaries',
+      label: $localize`:@@common.beneficiaries:Beneficiaries`,
+    },
+    { path: '/security', label: $localize`:@@common.security:Security` },
+    ...(this.auth.isAdmin()
+      ? [{ path: '/admin', label: $localize`:@@nav.admin:Admin` }]
+      : []),
   ]);
 
   async logout(): Promise<void> {
     await this.auth.logout();
     await this.router.navigateByUrl('/login');
+    this.toasts.info($localize`:@@nav.loggedOutToast:You're logged out`);
   }
 }

@@ -44,7 +44,11 @@ const RADIUS = 4; // px rounded data-end, square at the baseline
   template: `
     <div class="d-flex flex-wrap align-items-center gap-3 mb-2 small">
       @if (series().length > 1) {
-        <ul class="list-unstyled d-flex gap-3 mb-0" aria-label="Legend">
+        <ul
+          class="list-unstyled d-flex gap-3 mb-0"
+          aria-label="Legend"
+          i18n-aria-label="@@chart.legend"
+        >
           @for (s of series(); track s.label; let i = $index) {
             <li class="d-flex align-items-center gap-1">
               <svg width="12" height="12" aria-hidden="true">
@@ -60,7 +64,11 @@ const RADIUS = 4; // px rounded data-end, square at the baseline
         class="btn btn-link btn-sm p-0 ms-auto"
         (click)="showTable.set(!showTable())"
       >
-        {{ showTable() ? 'Show chart' : 'Show table' }}
+        @if (showTable()) {
+          <ng-container i18n="@@chart.showChart">Show chart</ng-container>
+        } @else {
+          <ng-container i18n="@@chart.showTable">Show table</ng-container>
+        }
       </button>
     </div>
 
@@ -74,7 +82,7 @@ const RADIUS = 4; // px rounded data-end, square at the baseline
           </caption>
           <thead>
             <tr>
-              <th scope="col">Month</th>
+              <th scope="col" i18n="@@chart.month">Month</th>
               @for (s of series(); track s.label) {
                 <th scope="col" class="text-end">{{ s.label }}</th>
               }

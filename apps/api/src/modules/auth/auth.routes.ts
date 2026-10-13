@@ -11,6 +11,7 @@ import {
   MfaTokenRequestSchema,
   MfaVerifyRequestSchema,
   RegisterRequestSchema,
+  UpdateProfileRequestSchema,
   type AuthResponse,
   type EnrollConfirmResponse,
 } from '@neobank/shared/models';
@@ -18,6 +19,7 @@ import type { AuthConfig } from '../../config/app-config';
 import { HttpError } from '../../lib/http-error';
 import { requireAuth } from '../../middleware/auth';
 import { validateBody } from '../../middleware/validate';
+import { refuseDemoAccount } from '../users/demo-account';
 import { AuthService, type ClientMeta, type Session } from './auth.service';
 
 export const REFRESH_COOKIE = 'nb_rt';
@@ -178,6 +180,18 @@ export function authRoutes(config: AuthConfig): Router {
     if (!req.auth) throw HttpError.unauthorized();
     res.json(await auth.getUser(req.auth.userId));
   });
+
+  /** Profile settings: for now, the preferred language. */
+  router.patch(
+    '/me',
+    requireAuth(config.accessTokenSecret),
+    refuseDemoAccount,
+    validateBody(UpdateProfileRequestSchema),
+    async (req, res) => {
+      if (!req.auth) throw HttpError.unauthorized();
+      res.json(await auth.updateProfile(req.auth.userId, req.body));
+    },
+  );
 
   return router;
 }

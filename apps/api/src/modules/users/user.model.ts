@@ -1,5 +1,10 @@
 import { HydratedDocument, model, Schema } from 'mongoose';
-import type { UserDto, UserRole } from '@neobank/shared/models';
+import {
+  type Language,
+  LANGUAGES,
+  type UserDto,
+  type UserRole,
+} from '@neobank/shared/models';
 
 /** Two-step verification state. Secrets are never selected unless asked for. */
 export interface UserMfa {
@@ -26,6 +31,8 @@ export interface User {
   mfa: UserMfa;
   /** Shared public demo login: security settings are read-only (see demo-account.ts). */
   demo: boolean;
+  /** Language of the web app the user chose; unset until they choose. */
+  language?: Language;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -53,6 +60,7 @@ const userSchema = new Schema<User>(
     lockedUntil: Date,
     lastLoginAt: Date,
     demo: { type: Boolean, default: false },
+    language: { type: String, enum: LANGUAGES },
     mfa: {
       enabled: { type: Boolean, default: false },
       secretEnc: { type: String, select: false },
@@ -79,6 +87,7 @@ export function toUserDto(user: UserDocument): UserDto {
     role: user.role,
     mfaEnabled: !!user.mfa?.enabled,
     demo: !!user.demo,
+    ...(user.language && { language: user.language }),
     createdAt: user.createdAt.toISOString(),
   };
 }

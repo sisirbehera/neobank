@@ -1,6 +1,14 @@
 import request from 'supertest';
 import { createApp } from '../app';
 import { AccountModel } from '../modules/accounts/account.model';
+import {
+  notify,
+  NotificationModel,
+} from '../modules/notifications/notifications';
+import {
+  recordSecurityEvent,
+  SecurityEventModel,
+} from '../modules/security/security-events';
 import { LedgerEntryModel } from '../modules/transactions/ledger-entry.model';
 import { UserModel } from '../modules/users/user.model';
 import { testConfig } from '../test/test-config';
@@ -61,12 +69,18 @@ describe('demo data', () => {
     expect(await UserModel.countDocuments()).toBe(2);
 
     const before = await AccountModel.find().distinct('accountNumber');
+    const [priya] = await UserModel.find({ email: DEMO_USERS.demo.email });
+    await recordSecurityEvent(priya._id, 'SIGNED_IN');
+    await notify(priya._id, 'MONEY_RECEIVED');
     await seedDemoData({ reset: true });
     const after = await AccountModel.find().distinct('accountNumber');
 
     expect(await UserModel.countDocuments()).toBe(2);
     expect(after).toHaveLength(3);
     expect(after).not.toEqual(before);
+    // Nothing of the old demo users is left behind.
+    expect(await SecurityEventModel.countDocuments()).toBe(0);
+    expect(await NotificationModel.countDocuments()).toBe(0);
   });
 
   it('flags the demo users, including ones created before the flag existed', async () => {

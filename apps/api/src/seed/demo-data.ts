@@ -12,6 +12,8 @@ import { hashPassword } from '../modules/auth/password';
 import { RefreshTokenModel } from '../modules/auth/refresh-token.model';
 import { BeneficiaryModel } from '../modules/beneficiaries/beneficiary.model';
 import { IdempotencyRecordModel } from '../modules/idempotency/idempotency-record.model';
+import { NotificationModel } from '../modules/notifications/notifications';
+import { SecurityEventModel } from '../modules/security/security-events';
 import { LedgerEntryModel } from '../modules/transactions/ledger-entry.model';
 import { TransactionModel } from '../modules/transactions/transaction.model';
 import { DailyTransferUsageModel } from '../modules/transfers/daily-limit.model';
@@ -280,6 +282,8 @@ async function deleteDemoData(): Promise<void> {
     RefreshTokenModel.deleteMany({ userId: { $in: userIds } }),
     IdempotencyRecordModel.deleteMany({ userId: { $in: userIds } }),
     DailyTransferUsageModel.deleteMany({ userId: { $in: userIds } }),
+    SecurityEventModel.deleteMany({ userId: { $in: userIds } }),
+    NotificationModel.deleteMany({ userId: { $in: userIds } }),
   ]);
   await AccountModel.deleteMany({ _id: { $in: accountIds } });
   await UserModel.deleteMany({ _id: { $in: userIds } });

@@ -10,13 +10,15 @@ flowchart LR
   subgraph R["Render: one Docker container (Node 24)"]
     E["Express 5"]
     E -- "/api/*" --> API["REST API<br/>modules: auth, accounts,<br/>transfers, history, admin…"]
-    E -- "everything else" --> S["Built Angular files<br/>(index.html fallback)"]
+    E -- "everything else" --> S["Built Angular files, one copy per language<br/>/en/ and /hi/: pre-built pages + index.csr.html shell"]
   end
   API -- "TLS, Mongoose" --> M[("MongoDB Atlas M0<br/>3-node replica set")]
   GH["GitHub Actions"] -. "push: CI + Docker smoke test<br/>Mondays: keep-alive smoke test" .-> R
 ```
 
 - **One service, one URL.** Express serves both the API and the Angular app. Because they share an origin, there is no CORS, and the refresh cookie can be `SameSite=Strict`.
+- **Pre-built public pages, browser-rendered private ones** ([0012](decisions/0012-prerender-public-pages.md)). Home, log in and register are rendered to HTML at build time and hydrated in the browser. Signed-in pages start from an empty shell. Express picks the file for each address; no Node rendering server runs.
+- **One build per language** ([0013](decisions/0013-built-in-i18n-per-language-builds.md)). English under `/en/`, Hindi under `/hi/`, each complete with its own pre-built pages. Addresses without a language redirect to the visitor's language. The API's messages stay English; the browser words errors in its language from their codes.
 - **A replica set everywhere.** Atlas is one, and in development the API starts an in-memory replica set (`mongodb-memory-server`) when `MONGODB_URI` is empty. Money movement relies on multi-document transactions, which need a replica set.
 - **Render** builds the `Dockerfile` on every push to `main` and restarts the container if `/api/health` stops answering. Free services sleep after 15 minutes idle.
 
@@ -52,12 +54,16 @@ Routes only translate HTTP to service calls. Services hold the rules and are wha
 
 ### Inside the web app (`apps/web/src/app`)
 
-| Folder                | What lives there                                                                                                         |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `core/<feature>/`     | `*.api.ts` (HTTP calls, responses parsed with the shared schemas) and, for shared state, `*.store.ts` (NgRx SignalStore) |
-| `core/http/`          | Interceptors: attach the access token, refresh once on `401`, map errors                                                 |
-| `core/security/`      | The step-up interceptor and its lazy-loaded "Confirm it's you" dialog                                                    |
-| `features/<feature>/` | Pages (smart components that inject stores) and their presentational pieces                                              |
+| Folder                 | What lives there                                                                                                         |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `core/<feature>/`      | `*.api.ts` (HTTP calls, responses parsed with the shared schemas) and, for shared state, `*.store.ts` (NgRx SignalStore) |
+| `core/http/`           | Interceptors: attach the access token, refresh once on `401`, map errors                                                 |
+| `core/security/`       | The step-up interceptor and its lazy-loaded "Confirm it's you" dialog                                                    |
+| `core/toast/`          | `ToastService` and the `<nb-toasts>` host in the shell                                                                   |
+| `core/i18n/`           | The language switcher and service, and translations of validation messages and API error codes                           |
+| `core/notifications/`  | The bell (deferred), its SignalStore (polling, toasts) and the wording of each notification type                         |
+| `app.routes.server.ts` | Render mode per route: pre-built at build time or rendered in the browser                                                |
+| `features/<feature>/`  | Pages (smart components that inject stores) and their presentational pieces                                              |
 
 State flows one way: a page calls a store method → the store calls the API → the store patches its state → every component reading that signal updates. Presentational components only use `input()` and `output()`.
 
@@ -157,5 +163,5 @@ flowchart LR
 ```
 
 - The `Dockerfile` has two stages: build everything with Nx, then copy only the API bundle, its 11 runtime packages and the Angular files into a small image that runs as the `node` user.
-- In production Express sends a strict Content-Security-Policy, HSTS and `nosniff`; compresses with Brotli; caches hashed bundles for a year; and never caches `index.html` or API responses.
-- `tools/smoke.mjs` checks a running copy end to end (headers, caching, deep links, OpenAPI, login, cookies, accounts). CI runs it against the Docker image, and the weekly workflow runs it against the live app.
+- In production Express sends a strict Content-Security-Policy (inline scripts only by hash, computed from the built pages at startup), HSTS and `nosniff`; compresses with Brotli; caches hashed bundles for a year; and never caches HTML or API responses.
+- `tools/smoke.mjs` checks a running copy end to end (headers, CSP hashes, pre-built pages, caching, deep links, OpenAPI, login, cookies, accounts). CI runs it against the Docker image, and the weekly workflow runs it against the live app.

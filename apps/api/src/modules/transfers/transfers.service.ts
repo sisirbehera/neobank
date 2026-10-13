@@ -10,6 +10,7 @@ import type { z } from 'zod';
 import { HttpError } from '../../lib/http-error';
 import { AccountModel, toAccountDto } from '../accounts/account.model';
 import { BeneficiaryModel } from '../beneficiaries/beneficiary.model';
+import { notify } from '../notifications/notifications';
 import type { MfaService } from '../security/mfa.service';
 import {
   type IdempotentOutcome,
@@ -165,6 +166,22 @@ export class TransfersService {
           ],
           { session, ordered: true },
         );
+
+        // In the same transaction: the notification exists exactly when the
+        // money arrived. Moving money between your own accounts isn't news.
+        if (!isOwn) {
+          await notify(
+            to.userId,
+            'MONEY_RECEIVED',
+            {
+              amountPaise: String(amount),
+              from: sender?.name ?? '',
+              accountId: to.id,
+              account: maskAccountNumber(to.accountNumber),
+            },
+            session,
+          );
+        }
 
         return {
           transactionId: transaction.id,

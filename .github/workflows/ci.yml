@@ -66,6 +66,16 @@ jobs:
 
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+
+      # The language tests run against the production build (Playwright's
+      # second web server). Building it here first means Playwright's build
+      # commands are instant Nx cache hits, instead of competing for the
+      # runner's 2 CPUs with the dev server while Playwright waits for it.
+      - name: Build the production app for the language tests
+        run: |
+          npx nx build web --configuration=production
+          npx nx build api --configuration=e2e
+
       - run: npx nx e2e web-e2e
 
       - uses: actions/upload-artifact@v4

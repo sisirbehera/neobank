@@ -11,6 +11,7 @@ import { Button, Card } from '@neobank/web/ui';
 import { firstValueFrom } from 'rxjs';
 import { toApiError } from '../../core/http/api-error';
 import { SecurityApi } from '../../core/security/security.api';
+import { ToastService } from '../../core/toast/toast.service';
 import { describeDevice } from './device';
 
 @Component({
@@ -20,7 +21,9 @@ import { describeDevice } from './device';
   template: `
     <nb-card
       title="Where you're signed in"
+      i18n-title="@@sessions.title"
       subtitle="Signing out a device ends it within 15 minutes."
+      i18n-subtitle="@@sessions.subtitle"
     >
       @if (error(); as error) {
         <div class="alert alert-danger" role="alert">{{ error }}</div>
@@ -35,14 +38,22 @@ import { describeDevice } from './device';
               <div class="fw-medium">
                 {{ device(s.userAgent) }}
                 @if (s.current) {
-                  <span class="badge text-bg-success ms-1">This device</span>
+                  <span
+                    class="badge text-bg-success ms-1"
+                    i18n="@@common.thisDevice"
+                    >This device</span
+                  >
                 }
                 @if (s.mfa) {
-                  <span class="badge text-bg-light border ms-1">2-step</span>
+                  <span
+                    class="badge text-bg-light border ms-1"
+                    i18n="@@sessions.mfaBadge"
+                    >2-step</span
+                  >
                 }
               </div>
-              <small class="text-body-secondary">
-                {{ s.ip || 'Unknown IP' }} · signed in
+              <small class="text-body-secondary" i18n="@@sessions.details">
+                {{ s.ip || unknownIp }} · signed in
                 {{ s.startedAt | date: 'd MMM, h:mm a' }} · last active
                 {{ s.lastActiveAt | date: 'd MMM, h:mm a' }}
               </small>
@@ -52,8 +63,9 @@ import { describeDevice } from './device';
                 nbButton
                 size="sm"
                 variant="outline-secondary"
-                [attr.aria-label]="'Sign out ' + device(s.userAgent)"
+                [attr.aria-label]="signOutLabel(s.userAgent)"
                 (click)="revoke(s.id)"
+                i18n="@@sessions.signOut"
               >
                 Sign out
               </button>
@@ -69,6 +81,7 @@ import { describeDevice } from './device';
           class="mt-3"
           [loading]="pending()"
           (click)="revokeOthers()"
+          i18n="@@sessions.signOutOthers"
         >
           Sign out all other devices ({{ others() }})
         </button>
@@ -78,6 +91,7 @@ import { describeDevice } from './device';
 })
 export class SessionsCard {
   private readonly api = inject(SecurityApi);
+  private readonly toasts = inject(ToastService);
 
   protected readonly sessions = signal<SessionDto[]>([]);
   protected readonly others = computed(
@@ -86,6 +100,9 @@ export class SessionsCard {
   protected readonly pending = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly device = describeDevice;
+  protected readonly unknownIp = $localize`:@@sessions.unknownIp:Unknown IP`;
+  protected readonly signOutLabel = (userAgent: string) =>
+    $localize`:@@sessions.signOutLabel:Sign out ${describeDevice(userAgent)}:device:`;
 
   constructor() {
     void this.reload();
@@ -100,18 +117,25 @@ export class SessionsCard {
   }
 
   async revoke(id: string): Promise<void> {
-    await this.act(() => firstValueFrom(this.api.revokeSession(id)));
+    await this.act(
+      () => firstValueFrom(this.api.revokeSession(id)),
+      $localize`:@@sessions.signedOutToast:Device signed out`,
+    );
   }
 
   async revokeOthers(): Promise<void> {
-    await this.act(() => firstValueFrom(this.api.revokeOtherSessions()));
+    await this.act(
+      () => firstValueFrom(this.api.revokeOtherSessions()),
+      $localize`:@@common.otherDevicesSignedOut:All other devices signed out`,
+    );
   }
 
-  private async act(action: () => Promise<void>): Promise<void> {
+  private async act(action: () => Promise<void>, done: string): Promise<void> {
     this.pending.set(true);
     this.error.set(null);
     try {
       await action();
+      this.toasts.success(done);
       await this.reload();
     } catch (err) {
       this.error.set(toApiError(err).message);

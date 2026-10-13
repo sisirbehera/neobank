@@ -3,7 +3,9 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
+  LOCALE_ID,
   Pipe,
   PipeTransform,
 } from '@angular/core';
@@ -12,8 +14,10 @@ import { formatInr } from '@neobank/shared/utils';
 /** {{ account.balance | inr }} → ₹12,34,567.89 (input is paise). */
 @Pipe({ name: 'inr' })
 export class InrPipe implements PipeTransform {
+  private readonly locale = inject(LOCALE_ID);
+
   transform(paise: number | null | undefined): string {
-    return paise == null ? '' : formatInr(paise);
+    return paise == null ? '' : formatInr(paise, this.locale);
   }
 }
 
@@ -30,13 +34,14 @@ export class InrPipe implements PipeTransform {
   template: `{{ text() }}`,
 })
 export class Amount {
+  private readonly locale = inject(LOCALE_ID);
   readonly paise = input.required<number>();
   /** Show a +/- sign and colour credits green, debits red. */
   readonly signed = input(false, { transform: booleanAttribute });
 
   protected readonly text = computed(() => {
     const value = this.paise();
-    const formatted = formatInr(Math.abs(value));
+    const formatted = formatInr(Math.abs(value), this.locale);
     if (value < 0) return `-${formatted}`;
     return this.signed() && value > 0 ? `+${formatted}` : formatted;
   });
