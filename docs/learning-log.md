@@ -16,6 +16,27 @@ What each day built, the concepts it taught, and the bugs we hit along the way. 
 
 Live since 2026-10-09 at https://neobank-sisir.onrender.com.
 
+## Week 2 at a glance
+
+| Day | Built                                                                            | Unit tests added | Browser tests |
+| --- | -------------------------------------------------------------------------------- | ---------------- | ------------- |
+| 8   | Security activity, toasts, idle sign-out, 404 page                               | 15               | 13            |
+| 9   | Public pages pre-built at build time and hydrated; CSP hashes for inline scripts | 3                | 15            |
+| 10  | English and Hindi (one build per language, readable message IDs), errors by code | 17               | 19            |
+| 11  | Notifications: bell, toasts, polling; stored as type and values                  | 11               | 20            |
+| 12  | Lighthouse before/after, layout-shift fix, local Docker check, demo script       | 0                | 20            |
+
+The week ended with 290 unit tests (from 244) and 20 browser tests (from 10). Lighthouse on the home page (mobile, slow 4G, same machine and method): performance 74 → 87, layout shift 0.139 → 0.001, accessibility, best practices and SEO still 100. Startup download 136 → 155 KB gzipped, now the same for each language.
+
+**The week's lessons in one line each:**
+
+- Test the gap between "visible" and "working": pre-built pages can be typed into before the app loads.
+- Every "protect the account" or "show the account" feature must ask what the shared demo login would do with it.
+- Store facts (codes, types, values), not sentences; let the reader's page word them.
+- A default must never be stored as if it were a choice.
+- Measure before and after on the same machine, the same day; old numbers mislead.
+- When a test fails in a way the change can't explain, check what is serving the requests (stale servers, shared build folders, a terminal sitting in `dist/`).
+
 ---
 
 ## Day 1: foundations
@@ -223,3 +244,19 @@ Live since 2026-10-09 at https://neobank-sisir.onrender.com.
 2. **MongoDB can't index "field doesn't exist".** A partial index with `readAt: { $exists: false }` is rejected. An ordinary index on `(userId, readAt)` works, because a missing field is indexed as null, and the query uses `readAt: null`.
 3. **Mongoose refuses update pipelines unless asked** (the `updatePipeline` option). A plain conditional update (`readAt: null` in the filter) was clearer anyway.
 4. **Still open: one browser test failed once in four full runs** (a registration that didn't reach the dashboard). It didn't reproduce, not even with registration under load or submitted before Angular loaded. CI retries failed tests and records a trace, so a repeat there will show what happened.
+
+## Day 12: measuring the week
+
+**Done:** Lighthouse on the Week 1 and Week 2 production images, a fix for the last layout shift, the production Docker image run and smoke-tested locally, and the demo script rewritten for the new features.
+
+**Concepts**
+
+- **Compare like with like.** Day 7's scores (83–84) came from another machine state. Re-measuring Week 1 today gave 74–81. Both versions were built as Docker images and measured back to back with the same Lighthouse version, median of 3 runs.
+- **Pre-rendering fixed layout shift and blocking time, not first paint.** The browser paints nothing until the render-blocking stylesheet arrives, however complete the HTML is. The 34 KB Bootstrap stylesheet, 89% unused on these pages, is now the limit.
+- **Reserve space for content that arrives later.** The System status card grew from one line to four when the health check answered. Rendering the same four rows with placeholders took the layout shift from 0.058 to 0.001.
+
+**Bugs**
+
+1. **"Reset demo data" left the demo users' security activity and notifications behind** (new collections this week, not added to the reset). Found while checking the demo script. **Lesson:** a new collection that belongs to a user needs a place in every "delete this user's data" path.
+2. **Git Bash turned the URL path `/` into `C:/Program Files/Git/`** when passed to a program. `MSYS_NO_PATHCONV=1` turns that conversion off.
+3. **A grep for a backslash-backtick matched every line:** in GNU grep, `` \` `` means "start of the text". A sed built on the same pattern prefixed every line with a backtick; the file was restored from git.

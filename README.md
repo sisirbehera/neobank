@@ -76,9 +76,12 @@ The dev server serves one language at `/` (English); `npx nx serve web --configu
 - **Accounts:** savings and current accounts, simulated deposits and withdrawals, balances backed by an append-only double-entry ledger.
 - **Transfers:** to your own accounts or saved beneficiaries, all-or-nothing in one MongoDB transaction, protected by idempotency keys and a ₹2,00,000 daily limit.
 - **History and statements:** filters, search, IST dates, CSV export, and an accessible money in/out chart.
-- **Security:** a short-lived access token in memory, a rotating refresh cookie, authenticator-app 2FA with backup codes (mandatory for admins), step-up codes for risky actions, password change and a devices list.
+- **Security:** a short-lived access token in memory, a rotating refresh cookie, authenticator-app 2FA with backup codes (mandatory for admins), step-up codes for risky actions, password change, a devices list, a security activity log, and sign-out after 5 idle minutes.
+- **Notifications:** money received, sign-ins from new devices, security changes and frozen accounts, in a bell with an unread count and as toasts.
+- **English and Hindi:** the language in the address (`/en/`, `/hi/`), chosen from the saved choice or the browser; amounts, dates and errors follow it.
 - **Admin:** stats, user search, freezing accounts with a required reason, and an audit log.
-- **Quality:** about 230 unit tests and 10 browser tests, OpenAPI docs generated from the validation schemas, Lighthouse 100 for accessibility.
+- **Speed:** public pages pre-built as HTML and hydrated; about 155 KB to start; Lighthouse (mobile, slow 4G) 87 for performance on the home page, 100 for accessibility, best practices and SEO.
+- **Quality:** about 290 unit tests and 20 browser tests (including the language tests against the production build), a Docker smoke test, OpenAPI docs generated from the validation schemas.
 
 ## Documentation
 
@@ -119,7 +122,7 @@ Dependabot (`.github/dependabot.yml`) opens weekly update PRs. Angular, Nx and V
 - [x] Day 9 – Rendering where it helps: `@angular/ssr` with per-route render modes · public pages (home, log in, register, 404) prerendered at build time, signed-in pages rendered in the browser · hydration with event replay · startup session refresh and timers skipped on the server · theme applied before first paint (no flash) · the API keeps serving plain files, so no Node rendering server on the free plan (decision record)
 - [x] Day 10 – Languages: Angular's built-in `@angular/localize`, English and Hindi · the language in the URL (`/en/dashboard`, `/hi/dashboard`) · the switcher keeps the current page · `/` picks the saved choice, then the browser language, then English · choice saved on the profile · amounts and dates formatted per locale · API errors sent as codes and translated in the browser (decision record)
 - [x] Day 11 – Notifications: in-app inbox with an unread badge, fetched on page load and tab focus (no websockets) · events: money received, sign-in from a new device, security changes · stored as type + values and worded in the reader's language · new ones shown as toasts
-- [ ] Day 12 – End-to-end demo: Playwright for the language switch, a page loaded with JavaScript off, and a transfer that notifies the receiver · smoke test covers both languages · Lighthouse before and after · demo script, decision records, learning log
+- [x] Day 12 – End-to-end demo: Playwright for the language switch, a page loaded with JavaScript off, and a transfer that notifies the receiver · smoke test covers both languages · Lighthouse before and after · demo script, decision records, learning log
 
 **Every day:** unit and Playwright tests, OpenAPI entries, a check of what the shared demo login can do with the new feature, a learning-log entry.
 
