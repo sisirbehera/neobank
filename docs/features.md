@@ -164,6 +164,22 @@ Home, log in and register are rendered to HTML at build time, so they appear bef
 | any other `/en/…`, `/hi/…`  | that language's `index.csr.html` (empty shell)            |
 | no language (`/`, `/login`) | a `302` to the visitor's language, keeping path and query |
 
+## Notifications
+
+| Endpoint                           | Purpose                                         |
+| ---------------------------------- | ----------------------------------------------- |
+| `GET /api/notifications`           | Newest 20 and the unread count                  |
+| `GET /api/notifications/summary`   | Unread count and newest id (what the app polls) |
+| `POST /api/notifications/:id/read` | Mark one as read (`404` for someone else's)     |
+| `POST /api/notifications/read-all` | Mark all as read                                |
+
+- **What creates one:** money received from someone else (in the transfer's transaction; not for transfers between your own accounts), a sign-in from a browser not seen in the last 90 days (not the first sign-in), password and 2FA changes, a lockout, a blocked copied sign-in, and the bank freezing or unfreezing an account.
+- **Stored as a type and values** (`MONEY_RECEIVED` + `{ amountPaise, from, accountId, account }`); the web app words it in the page's language. Details: [0014](decisions/0014-notifications-polling-type-and-values.md).
+- **The bell** in the navbar shows the unread count; its list marks items read when opened and links to the account or the Security page. It is loaded with `@defer (on idle)`, so signed-out visitors never download it.
+- **New ones appear as toasts.** The app checks the summary on start, when the tab becomes visible, and every 60 seconds while it is visible. Only notifications that arrived since the page loaded become toasts (at most 3 at once). Money received or an account frozen also refreshes the cached balances.
+- **The shared demo login** gets no sign-in or security notifications (they would show visitors each other's devices).
+- Rows expire after 90 days.
+
 ## Languages
 
 English and Hindi, with the language in the address: `/en/dashboard`, `/hi/dashboard`. Details and trade-offs: [0013](decisions/0013-built-in-i18n-per-language-builds.md).

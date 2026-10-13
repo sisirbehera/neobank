@@ -17,6 +17,7 @@ import { IdleLogoutService } from './core/auth/idle-logout.service';
 import { IdleWarning } from './core/auth/idle-warning';
 import { LanguageService } from './core/i18n/language.service';
 import { LanguageSwitcher } from './core/i18n/language-switcher';
+import { NotificationBell } from './core/notifications/notification-bell';
 import { ToastService } from './core/toast/toast.service';
 import { Toasts } from './core/toast/toasts';
 
@@ -28,6 +29,7 @@ import { Toasts } from './core/toast/toasts';
     RouterLinkActive,
     ThemeSwitcher,
     LanguageSwitcher,
+    NotificationBell,
     Toasts,
     IdleWarning,
   ],
@@ -46,6 +48,11 @@ import { Toasts } from './core/toast/toasts';
                 [routerLink]="link.path"
                 >{{ link.label }}</a
               >
+            }
+            <!-- Its own chunk, loaded once the browser is idle: signed-out
+                 visitors never download it. The bell starts the checks. -->
+            @defer (on idle) {
+              <nb-notification-bell />
             }
             <span class="navbar-text small d-none d-sm-inline">{{
               auth.user()?.name

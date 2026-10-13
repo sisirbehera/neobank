@@ -32,6 +32,8 @@ import {
   MoneyMovementRequestSchema,
   MoneyMovementResponseSchema,
   MonthlySummarySchema,
+  NotificationsPageSchema,
+  NotificationSummarySchema,
   OpenAccountRequestSchema,
   RegisterRequestSchema,
   SecurityEventDtoSchema,
@@ -272,6 +274,42 @@ const operations: Operation[] = [
     summary: 'Recent sign-ins and security changes (newest first, up to 30)',
     auth: 'bearer',
     response: m.array(SecurityEventDtoSchema),
+  },
+
+  // ---- Notifications
+  {
+    method: 'get',
+    path: '/notifications',
+    tag: 'Notifications',
+    summary: 'Newest 20 notifications and the unread count',
+    auth: 'bearer',
+    response: NotificationsPageSchema,
+  },
+  {
+    method: 'get',
+    path: '/notifications/summary',
+    tag: 'Notifications',
+    summary: 'Unread count and newest id (polled by the web app)',
+    auth: 'bearer',
+    response: NotificationSummarySchema,
+  },
+  {
+    method: 'post',
+    path: '/notifications/{id}/read',
+    tag: 'Notifications',
+    summary: 'Mark one notification as read',
+    auth: 'bearer',
+    response: null,
+    status: 204,
+  },
+  {
+    method: 'post',
+    path: '/notifications/read-all',
+    tag: 'Notifications',
+    summary: 'Mark every notification as read',
+    auth: 'bearer',
+    response: null,
+    status: 204,
   },
 
   // ---- Accounts

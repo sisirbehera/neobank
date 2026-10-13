@@ -20,6 +20,7 @@ import { AccountModel, toAccountDto } from '../accounts/account.model';
 import { TransactionModel } from '../transactions/transaction.model';
 import { UserModel } from '../users/user.model';
 import { AuditLogModel } from './audit-log.model';
+import { notify } from '../notifications/notifications';
 
 type UsersQuery = z.output<typeof AdminUsersQuerySchema>;
 type TransactionsQuery = z.output<typeof AdminTransactionsQuerySchema>;
@@ -170,6 +171,15 @@ export class AdminService {
           },
         ],
         { session },
+      );
+      await notify(
+        account.userId,
+        status === 'FROZEN' ? 'ACCOUNT_FROZEN' : 'ACCOUNT_UNFROZEN',
+        {
+          accountId: account.id,
+          account: maskAccountNumber(account.accountNumber),
+        },
+        session,
       );
       return toAccountDto(account);
     });

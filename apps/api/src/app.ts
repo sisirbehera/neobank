@@ -14,6 +14,7 @@ import { beneficiariesRoutes } from './modules/beneficiaries/beneficiaries.route
 import { docsRoutes } from './modules/docs/docs.routes';
 import { healthRoutes } from './modules/health/health.routes';
 import { historyRoutes } from './modules/history/history.routes';
+import { notificationsRoutes } from './modules/notifications/notifications.routes';
 import { securityRoutes } from './modules/security/security.routes';
 import { transfersRoutes } from './modules/transfers/transfers.routes';
 
@@ -60,6 +61,7 @@ export function createApp(config: AppConfig) {
   api.use('/beneficiaries', beneficiariesRoutes(config.auth));
   api.use('/transfers', transfersRoutes(config.auth));
   api.use('/transactions', historyRoutes(config.auth.accessTokenSecret));
+  api.use('/notifications', notificationsRoutes(config.auth.accessTokenSecret));
   api.use(
     '/admin',
     adminRoutes({

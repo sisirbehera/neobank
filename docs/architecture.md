@@ -61,6 +61,7 @@ Routes only translate HTTP to service calls. Services hold the rules and are wha
 | `core/security/`       | The step-up interceptor and its lazy-loaded "Confirm it's you" dialog                                                    |
 | `core/toast/`          | `ToastService` and the `<nb-toasts>` host in the shell                                                                   |
 | `core/i18n/`           | The language switcher and service, and translations of validation messages and API error codes                           |
+| `core/notifications/`  | The bell (deferred), its SignalStore (polling, toasts) and the wording of each notification type                         |
 | `app.routes.server.ts` | Render mode per route: pre-built at build time or rendered in the browser                                                |
 | `features/<feature>/`  | Pages (smart components that inject stores) and their presentational pieces                                              |
 

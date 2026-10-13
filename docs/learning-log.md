@@ -203,3 +203,23 @@ Live since 2026-10-09 at https://neobank-sisir.onrender.com.
 1. **The first rename attempt attached some IDs to the wrong elements.** It took the first matching `label=` near a line, and its search window didn't reach tags that start more than six lines above their text. Every match now has to agree with the message text, and a final check compares all IDs and texts against the plan.
 2. **A `Copy / Copied` button was never translated** (a `'Copied' : 'Copy'` string inside a template expression). Found while reading the rename diff.
 3. **A build "failed" because the terminal's working folder was inside `dist/`.** Windows won't delete a folder a program is using. Not a project problem, but worth recognising.
+
+## Day 11: notifications
+
+**Built:** in-app notifications for money received, sign-ins from new devices, security changes and frozen accounts; a bell with an unread badge in the navbar; toasts for new ones ([0014](decisions/0014-notifications-polling-type-and-values.md)).
+
+**Concepts**
+
+- **Store facts, not sentences.** A notification is `MONEY_RECEIVED` plus `{ amountPaise, from, account }`. The browser words it in the reader's language and formats the amount for it. The same row reads correctly in English and Hindi, and the wording can change later.
+- **Write the side effect in the same transaction.** The "money received" notification is created inside the transfer's MongoDB transaction: if the transfer rolls back, so does the notification. There is never a notification for money that didn't arrive.
+- **Polling, designed to be cheap.** One tiny summary request (unread count + newest id) per minute while the tab is visible, plus one when it becomes visible again. The full list is fetched only when the newest id changes. For events where a minute's delay is fine, this is simpler and sturdier than WebSockets on a server that sleeps.
+- **Only new things become toasts.** The first check after loading just records the newest id; older unread notifications show in the badge, not as a burst of toasts.
+- **`@defer` keeps optional UI out of the first download.** The bell is only for signed-in users, so it loads in its own 3 KB chunk once the browser is idle.
+- **One event can make cached data stale.** Money arriving changes a balance the app had cached. Notifications that change an account now refresh the accounts store, and the account page reloads its list when that account's balance or status changes.
+
+**Bugs**
+
+1. **The account page kept showing the old balance** after money arrived, even after clicking the notification: the router doesn't reload a page it is already on, and the balance came from a cache. The new browser test (two users in two browsers, the receiver's clock fast-forwarded a minute) caught it.
+2. **MongoDB can't index "field doesn't exist".** A partial index with `readAt: { $exists: false }` is rejected. An ordinary index on `(userId, readAt)` works, because a missing field is indexed as null, and the query uses `readAt: null`.
+3. **Mongoose refuses update pipelines unless asked** (the `updatePipeline` option). A plain conditional update (`readAt: null` in the filter) was clearer anyway.
+4. **Still open: one browser test failed once in four full runs** (a registration that didn't reach the dashboard). It didn't reproduce, not even with registration under load or submitted before Angular loaded. CI retries failed tests and records a trace, so a repeat there will show what happened.

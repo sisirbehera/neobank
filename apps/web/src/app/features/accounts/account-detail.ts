@@ -160,6 +160,11 @@ export class AccountDetail {
   protected readonly account = computed(
     () => this.store.entityMap()[this.id()],
   );
+  /** Changes when the balance or status does. */
+  private readonly accountState = computed(() => {
+    const account = this.account();
+    return account ? `${account.balance}|${account.status}` : '';
+  });
   protected readonly activity = signal<LedgerEntryDto[]>([]);
   protected readonly activityError = signal<string | null>(null);
   protected readonly copied = signal(false);
@@ -167,9 +172,11 @@ export class AccountDetail {
   constructor() {
     void this.store.load();
 
-    // Reload the activity whenever the route switches to another account.
+    // Reload the activity when the route switches to another account, and
+    // when this account changes (money received, frozen: see notifications).
     effect(() => {
       const id = this.id();
+      this.accountState();
       untracked(() => void this.loadActivity(id));
     });
   }

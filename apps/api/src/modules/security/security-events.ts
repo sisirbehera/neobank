@@ -1,8 +1,10 @@
 import { model, Schema, Types } from 'mongoose';
 import type {
+  NotificationType,
   SecurityEventDto,
   SecurityEventType,
 } from '@neobank/shared/models';
+import { notify } from '../notifications/notifications';
 import { isDemoAccount } from '../users/demo-account';
 
 /**
@@ -52,12 +54,52 @@ export interface EventContext {
   ip?: string;
 }
 
+/** Security events the user is also told about (in-app notification). */
+const NOTIFIED: Partial<Record<SecurityEventType, NotificationType>> = {
+  PASSWORD_CHANGED: 'PASSWORD_CHANGED',
+  MFA_ENABLED: 'MFA_ENABLED',
+  MFA_DISABLED: 'MFA_DISABLED',
+  ACCOUNT_LOCKED: 'ACCOUNT_LOCKED',
+  STOLEN_SESSION_BLOCKED: 'STOLEN_SESSION_BLOCKED',
+};
+
 export async function recordSecurityEvent(
   userId: string | Types.ObjectId,
   type: SecurityEventType,
   context: EventContext = {},
 ): Promise<void> {
+  // Checked before the new sign-in is recorded, so it doesn't count itself.
+  const newDevice =
+    type === 'SIGNED_IN' && (await isNewDevice(userId, context));
   await SecurityEventModel.create({ userId, type, ...context });
+
+  const notification = newDevice ? 'NEW_DEVICE_SIGN_IN' : NOTIFIED[type];
+  // The shared demo login gets none: visitors would see each other's devices.
+  if (notification && !(await isDemoAccount(userId))) {
+    await notify(
+      userId,
+      notification,
+      notification === 'NEW_DEVICE_SIGN_IN'
+        ? { userAgent: context.userAgent ?? '' }
+        : {},
+    );
+  }
+}
+
+/**
+ * A sign-in from a browser (User-Agent) this user hasn't signed in from in
+ * the last 90 days. The very first sign-in (registering) is not news.
+ */
+async function isNewDevice(
+  userId: string | Types.ObjectId,
+  { userAgent }: EventContext,
+): Promise<boolean> {
+  const signIns = { userId, type: 'SIGNED_IN' as const };
+  const [before, sameDevice] = await Promise.all([
+    SecurityEventModel.exists(signIns),
+    SecurityEventModel.exists({ ...signIns, userAgent }),
+  ]);
+  return !!before && !sameDevice;
 }
 
 /**
