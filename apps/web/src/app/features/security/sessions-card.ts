@@ -21,9 +21,9 @@ import { describeDevice } from './device';
   template: `
     <nb-card
       title="Where you're signed in"
-      i18n-title
+      i18n-title="@@sessions.title"
       subtitle="Signing out a device ends it within 15 minutes."
-      i18n-subtitle
+      i18n-subtitle="@@sessions.subtitle"
     >
       @if (error(); as error) {
         <div class="alert alert-danger" role="alert">{{ error }}</div>
@@ -38,17 +38,21 @@ import { describeDevice } from './device';
               <div class="fw-medium">
                 {{ device(s.userAgent) }}
                 @if (s.current) {
-                  <span class="badge text-bg-success ms-1" i18n
+                  <span
+                    class="badge text-bg-success ms-1"
+                    i18n="@@common.thisDevice"
                     >This device</span
                   >
                 }
                 @if (s.mfa) {
-                  <span class="badge text-bg-light border ms-1" i18n
+                  <span
+                    class="badge text-bg-light border ms-1"
+                    i18n="@@sessions.mfaBadge"
                     >2-step</span
                   >
                 }
               </div>
-              <small class="text-body-secondary" i18n>
+              <small class="text-body-secondary" i18n="@@sessions.details">
                 {{ s.ip || unknownIp }} · signed in
                 {{ s.startedAt | date: 'd MMM, h:mm a' }} · last active
                 {{ s.lastActiveAt | date: 'd MMM, h:mm a' }}
@@ -61,7 +65,7 @@ import { describeDevice } from './device';
                 variant="outline-secondary"
                 [attr.aria-label]="signOutLabel(s.userAgent)"
                 (click)="revoke(s.id)"
-                i18n
+                i18n="@@sessions.signOut"
               >
                 Sign out
               </button>
@@ -77,7 +81,7 @@ import { describeDevice } from './device';
           class="mt-3"
           [loading]="pending()"
           (click)="revokeOthers()"
-          i18n
+          i18n="@@sessions.signOutOthers"
         >
           Sign out all other devices ({{ others() }})
         </button>
@@ -96,9 +100,9 @@ export class SessionsCard {
   protected readonly pending = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly device = describeDevice;
-  protected readonly unknownIp = $localize`Unknown IP`;
+  protected readonly unknownIp = $localize`:@@sessions.unknownIp:Unknown IP`;
   protected readonly signOutLabel = (userAgent: string) =>
-    $localize`Sign out ${describeDevice(userAgent)}:device:`;
+    $localize`:@@sessions.signOutLabel:Sign out ${describeDevice(userAgent)}:device:`;
 
   constructor() {
     void this.reload();
@@ -115,14 +119,14 @@ export class SessionsCard {
   async revoke(id: string): Promise<void> {
     await this.act(
       () => firstValueFrom(this.api.revokeSession(id)),
-      $localize`Device signed out`,
+      $localize`:@@sessions.signedOutToast:Device signed out`,
     );
   }
 
   async revokeOthers(): Promise<void> {
     await this.act(
       () => firstValueFrom(this.api.revokeOtherSessions()),
-      $localize`All other devices signed out`,
+      $localize`:@@common.otherDevicesSignedOut:All other devices signed out`,
     );
   }
 

@@ -187,3 +187,19 @@ Live since 2026-10-09 at https://neobank-sisir.onrender.com.
 3. **A profile default would have overridden real choices.** Every user's language defaulted to `en`, so a Hindi visitor who never chose would be switched to English after signing in, including everyone on the shared demo login. **Fix:** the profile's language stays empty until the user chooses.
 4. **Two test servers shared one build folder.** The production test server built the API into `apps/api/dist`, where the dev API runs from. The dev API restarted on every such build and lost its in-memory database, so random registrations failed. **Fix:** an `e2e` build configuration with its own output folder. The esbuild executor's `--outputPath` override moved only `package.json`, not `main.js`, which is why it needed a named configuration.
 5. **Unit tests use Angular's default locale, `en-US`,** which formats ₹12,34,567 as ₹1,234,567. The app is built for `en-IN`, so the tests now set `LOCALE_ID` explicitly. Tests also load `@angular/localize/init`, which the app gets from its polyfills.
+
+## Day 10, follow-up: readable message IDs
+
+**Changed:** every message now has a hand-picked ID (`login.title`, `transfer.confirm`, `error.invalidCredentials`) instead of a generated number, after reviewing the Hindi showed that `"6972903818043702698": "लॉग इन · NeoBank"` says nothing about where a line appears.
+
+**Concepts**
+
+- **Generated vs custom IDs.** Angular's default ID is a hash of the English text (plus its meaning). It needs no naming, and any English change forces a new translation. Custom IDs (`@@login.title`) are readable and stable: a typo fix in English keeps its Hindi. The cost is that stale translations are no longer caught by the build, so a test checks the files instead.
+- **Renaming 315 messages safely.** The XLIFF export records the file and line of every message. A script named each one from its file and text (hand-picked names for about 180), inserted `@@id` at that spot, re-extracted, and moved each Hindi translation only if the English behind the old and the new ID was identical. All 314 matched.
+- **A plural alone in its element is one message.** With text or line breaks around it, Angular extracts a wrapper (`{$ICU}`) plus the plural, and the plural can't get a custom ID. Prettier puts line breaks back, so the element carries `<!-- prettier-ignore -->`.
+
+**Bugs**
+
+1. **The first rename attempt attached some IDs to the wrong elements.** It took the first matching `label=` near a line, and its search window didn't reach tags that start more than six lines above their text. Every match now has to agree with the message text, and a final check compares all IDs and texts against the plan.
+2. **A `Copy / Copied` button was never translated** (a `'Copied' : 'Copy'` string inside a template expression). Found while reading the rename diff.
+3. **A build "failed" because the terminal's working folder was inside `dist/`.** Windows won't delete a folder a program is using. Not a project problem, but worth recognising.

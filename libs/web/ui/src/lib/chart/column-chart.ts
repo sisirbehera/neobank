@@ -47,7 +47,7 @@ const RADIUS = 4; // px rounded data-end, square at the baseline
         <ul
           class="list-unstyled d-flex gap-3 mb-0"
           aria-label="Legend"
-          i18n-aria-label
+          i18n-aria-label="@@chart.legend"
         >
           @for (s of series(); track s.label; let i = $index) {
             <li class="d-flex align-items-center gap-1">
@@ -65,9 +65,9 @@ const RADIUS = 4; // px rounded data-end, square at the baseline
         (click)="showTable.set(!showTable())"
       >
         @if (showTable()) {
-          <ng-container i18n>Show chart</ng-container>
+          <ng-container i18n="@@chart.showChart">Show chart</ng-container>
         } @else {
-          <ng-container i18n>Show table</ng-container>
+          <ng-container i18n="@@chart.showTable">Show table</ng-container>
         }
       </button>
     </div>
@@ -82,7 +82,7 @@ const RADIUS = 4; // px rounded data-end, square at the baseline
           </caption>
           <thead>
             <tr>
-              <th scope="col" i18n>Month</th>
+              <th scope="col" i18n="@@chart.month">Month</th>
               @for (s of series(); track s.label) {
                 <th scope="col" class="text-end">{{ s.label }}</th>
               }

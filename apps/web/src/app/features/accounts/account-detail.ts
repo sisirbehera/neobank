@@ -41,7 +41,9 @@ import { type MoneyAction, MoneyDialog } from './money-dialog';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <nav class="mb-3 small">
-      <a routerLink="/dashboard" i18n>← Dashboard</a>
+      <a routerLink="/dashboard" i18n="@@account.backToDashboard"
+        >← Dashboard</a
+      >
     </nav>
 
     @if (account(); as account) {
@@ -74,7 +76,7 @@ import { type MoneyAction, MoneyDialog } from './money-dialog';
                 }}</span>
               }
             </div>
-            <div class="small text-body-secondary mt-1" i18n>
+            <div class="small text-body-secondary mt-1" i18n="@@account.opened">
               Opened {{ account.createdAt | date: 'mediumDate' }}
             </div>
           </div>
@@ -85,7 +87,7 @@ import { type MoneyAction, MoneyDialog } from './money-dialog';
               variant="success"
               [disabled]="account.status !== 'ACTIVE'"
               (click)="openDialog('deposit')"
-              i18n
+              i18n="@@account.addMoney"
             >
               Add money
             </button>
@@ -94,7 +96,7 @@ import { type MoneyAction, MoneyDialog } from './money-dialog';
               variant="outline-primary"
               [disabled]="account.status !== 'ACTIVE' || account.balance === 0"
               (click)="openDialog('withdraw')"
-              i18n
+              i18n="@@account.withdraw"
             >
               Withdraw
             </button>
@@ -104,7 +106,7 @@ import { type MoneyAction, MoneyDialog } from './money-dialog';
                 variant="outline-primary"
                 routerLink="/transfer"
                 [queryParams]="{ from: account.id }"
-                i18n
+                i18n="@@common.transfer"
                 >Transfer</a
               >
             }
@@ -112,7 +114,7 @@ import { type MoneyAction, MoneyDialog } from './money-dialog';
         </div>
       </section>
 
-      <nb-card title="Recent activity" i18n-title>
+      <nb-card title="Recent activity" i18n-title="@@common.recentActivity">
         <a
           cardActions
           class="small"
@@ -126,18 +128,18 @@ import { type MoneyAction, MoneyDialog } from './money-dialog';
           <nb-activity-list
             [entries]="activity()"
             emptyText="No transactions yet. Add money to get started."
-            i18n-emptyText
+            i18n-emptyText="@@account.noTransactions"
           />
         }
       </nb-card>
     } @else if (store.loaded()) {
-      <div class="alert alert-warning" i18n>
+      <div class="alert alert-warning" i18n="@@account.notFound">
         Account not found. <a routerLink="/dashboard">Back to dashboard</a>
       </div>
     } @else if (store.error(); as error) {
       <div class="alert alert-danger">{{ error }}</div>
     } @else {
-      <p class="text-body-secondary" i18n>Loading…</p>
+      <p class="text-body-secondary" i18n="@@common.loading">Loading…</p>
     }
   `,
 })
@@ -151,8 +153,8 @@ export class AccountDetail {
   private readonly toasts = inject(ToastService);
   private readonly locale = inject(LOCALE_ID);
   protected readonly statusLabels = ACCOUNT_STATUS_LABELS;
-  protected readonly copyText = $localize`Copy`;
-  protected readonly copiedText = $localize`Copied`;
+  protected readonly copyText = $localize`:@@common.copy:Copy`;
+  protected readonly copiedText = $localize`:@@common.copied:Copied`;
 
   protected readonly typeLabels = ACCOUNT_TYPE_LABELS;
   protected readonly account = computed(
@@ -186,8 +188,8 @@ export class AccountDetail {
       );
       this.toasts.success(
         action === 'deposit'
-          ? $localize`Deposited ${formatInr(result.entry.amount, this.locale)}:amount:`
-          : $localize`Withdrew ${formatInr(result.entry.amount, this.locale)}:amount:`,
+          ? $localize`:@@account.depositedToast:Deposited ${formatInr(result.entry.amount, this.locale)}:amount:`
+          : $localize`:@@account.withdrewToast:Withdrew ${formatInr(result.entry.amount, this.locale)}:amount:`,
       );
     } catch {
       // Dialog dismissed: nothing to do.

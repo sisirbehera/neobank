@@ -10,15 +10,21 @@ import { SystemStatusStore } from '../../core/system/system-status.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="mb-4">
-      <h1 class="h3" i18n>Welcome to NeoBank</h1>
-      <p class="text-body-secondary" i18n>
+      <h1 class="h3" i18n="@@home.title">Welcome to NeoBank</h1>
+      <p class="text-body-secondary" i18n="@@home.intro">
         A demo digital bank built with Angular, Express and MongoDB.
       </p>
       <div class="d-flex gap-2">
         @if (auth.isAuthenticated()) {
-          <a nbButton routerLink="/dashboard" i18n>Go to dashboard</a>
+          <a nbButton routerLink="/dashboard" i18n="@@common.goToDashboard"
+            >Go to dashboard</a
+          >
         } @else {
-          <a nbButton class="nb-guest-only" routerLink="/register" i18n
+          <a
+            nbButton
+            class="nb-guest-only"
+            routerLink="/register"
+            i18n="@@home.openAnAccount"
             >Open an account</a
           >
           <a
@@ -26,7 +32,7 @@ import { SystemStatusStore } from '../../core/system/system-status.store';
             class="nb-guest-only"
             variant="outline-primary"
             routerLink="/login"
-            i18n
+            i18n="@@common.logIn"
             >Log in</a
           >
         }
@@ -35,7 +41,7 @@ import { SystemStatusStore } from '../../core/system/system-status.store';
 
     <div class="row g-4">
       <div class="col-12 col-lg-5">
-        <nb-card title="System status" i18n-title>
+        <nb-card title="System status" i18n-title="@@home.systemStatus">
           <button
             cardActions
             nbButton
@@ -43,7 +49,7 @@ import { SystemStatusStore } from '../../core/system/system-status.store';
             size="sm"
             [loading]="store.loading()"
             (click)="store.load()"
-            i18n
+            i18n="@@common.refresh"
           >
             Refresh
           </button>
@@ -54,9 +60,11 @@ import { SystemStatusStore } from '../../core/system/system-status.store';
             <dl class="row mb-0">
               <dt class="col-5">API</dt>
               <dd class="col-7">
-                <span class="badge text-bg-success" i18n>online</span>
+                <span class="badge text-bg-success" i18n="@@home.online"
+                  >online</span
+                >
               </dd>
-              <dt class="col-5" i18n>Database</dt>
+              <dt class="col-5" i18n="@@home.database">Database</dt>
               <dd class="col-7">
                 <span
                   class="badge"
@@ -65,13 +73,17 @@ import { SystemStatusStore } from '../../core/system/system-status.store';
                   >{{ health.db }}</span
                 >
               </dd>
-              <dt class="col-5" i18n>Uptime</dt>
-              <dd class="col-7" i18n>{{ health.uptimeSeconds }} s</dd>
-              <dt class="col-5" i18n>Version</dt>
+              <dt class="col-5" i18n="@@home.uptime">Uptime</dt>
+              <dd class="col-7" i18n="@@home.uptimeSeconds">
+                {{ health.uptimeSeconds }} s
+              </dd>
+              <dt class="col-5" i18n="@@home.version">Version</dt>
               <dd class="col-7 mb-0">{{ health.version }}</dd>
             </dl>
           } @else {
-            <p class="text-body-secondary mb-0" i18n>Checking…</p>
+            <p class="text-body-secondary mb-0" i18n="@@home.checking">
+              Checking…
+            </p>
           }
         </nb-card>
       </div>
@@ -79,34 +91,42 @@ import { SystemStatusStore } from '../../core/system/system-status.store';
       <div class="col-12 col-lg-7">
         <nb-card
           title="UI kit preview"
-          i18n-title
+          i18n-title="@@home.uiKitPreview"
           subtitle="Switch themes from the navbar"
-          i18n-subtitle
+          i18n-subtitle="@@home.uiKitHint"
         >
           <div class="d-flex flex-wrap gap-2 mb-3">
-            <button nbButton i18n>Primary</button>
-            <button nbButton variant="outline-primary" i18n>Outline</button>
-            <button nbButton variant="secondary" i18n>Secondary</button>
-            <button nbButton variant="danger" i18n>Danger</button>
-            <button nbButton loading i18n>Saving</button>
+            <button nbButton i18n="@@home.primary">Primary</button>
+            <button nbButton variant="outline-primary" i18n="@@home.outline">
+              Outline
+            </button>
+            <button nbButton variant="secondary" i18n="@@home.secondary">
+              Secondary
+            </button>
+            <button nbButton variant="danger" i18n="@@home.danger">
+              Danger
+            </button>
+            <button nbButton loading i18n="@@home.saving">Saving</button>
           </div>
 
           <ul class="list-group mb-3">
             <li class="list-group-item d-flex justify-content-between">
-              <span i18n>Salary credited</span>
+              <span i18n="@@home.salaryCredited">Salary credited</span>
               <nb-amount [paise]="8500000" signed />
             </li>
             <li class="list-group-item d-flex justify-content-between">
-              <span i18n>Rent transfer</span>
+              <span i18n="@@home.rentTransfer">Rent transfer</span>
               <nb-amount [paise]="-2200000" signed />
             </li>
             <li class="list-group-item d-flex justify-content-between">
-              <span i18n>Balance</span>
+              <span i18n="@@home.balance">Balance</span>
               <strong>{{ 123456789 | inr }}</strong>
             </li>
           </ul>
 
-          <label class="form-label" for="demo-amount" i18n>Amount</label>
+          <label class="form-label" for="demo-amount" i18n="@@common.amount"
+            >Amount</label
+          >
           <div class="input-group">
             <span class="input-group-text">₹</span>
             <input

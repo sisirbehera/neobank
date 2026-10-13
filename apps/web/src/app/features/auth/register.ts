@@ -33,7 +33,9 @@ function matchesPassword(control: AbstractControl): ValidationErrors | null {
   const password = control.parent?.get('password')?.value;
   return control.value === password
     ? null
-    : { mismatch: $localize`Passwords do not match` };
+    : {
+        mismatch: $localize`:@@common.passwordsDoNotMatch:Passwords do not match`,
+      };
 }
 
 @Component({
@@ -43,13 +45,16 @@ function matchesPassword(control: AbstractControl): ValidationErrors | null {
   template: `
     <div class="row justify-content-center">
       <div class="col-12 col-sm-10 col-md-7 col-lg-5">
-        <nb-card title="Open your NeoBank account" i18n-title>
+        <nb-card
+          title="Open your NeoBank account"
+          i18n-title="@@register.title"
+        >
           @if (error(); as error) {
             <div class="alert alert-danger" role="alert">{{ error }}</div>
           }
 
           <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-            <nb-form-field label="Full name" i18n-label>
+            <nb-form-field label="Full name" i18n-label="@@register.fullName">
               <input
                 nbInput
                 id="name"
@@ -58,7 +63,7 @@ function matchesPassword(control: AbstractControl): ValidationErrors | null {
               />
             </nb-form-field>
 
-            <nb-form-field label="Email" i18n-label>
+            <nb-form-field label="Email" i18n-label="@@common.email">
               <input
                 nbInput
                 id="email"
@@ -70,9 +75,9 @@ function matchesPassword(control: AbstractControl): ValidationErrors | null {
 
             <nb-form-field
               label="Password"
-              i18n-label
+              i18n-label="@@common.password"
               hint="At least 8 characters, with a letter and a number."
-              i18n-hint
+              i18n-hint="@@common.passwordHint"
             >
               <input
                 nbInput
@@ -83,7 +88,10 @@ function matchesPassword(control: AbstractControl): ValidationErrors | null {
               />
             </nb-form-field>
 
-            <nb-form-field label="Confirm password" i18n-label>
+            <nb-form-field
+              label="Confirm password"
+              i18n-label="@@register.confirmPassword"
+            >
               <input
                 nbInput
                 id="confirmPassword"
@@ -98,13 +106,13 @@ function matchesPassword(control: AbstractControl): ValidationErrors | null {
               type="submit"
               class="w-100"
               [loading]="pending()"
-              i18n
+              i18n="@@register.submit"
             >
               Create account
             </button>
           </form>
 
-          <p class="mt-3 mb-0 text-center small" i18n>
+          <p class="mt-3 mb-0 text-center small" i18n="@@register.loginPrompt">
             Already have an account? <a routerLink="/login">Log in</a>
           </p>
         </nb-card>

@@ -120,7 +120,7 @@ export class IdleLogoutService {
     await this.auth.logout();
     await this.router.navigateByUrl('/login');
     this.toasts.info(
-      $localize`You were signed out after 5 minutes without activity. Please log in again.`,
+      $localize`:@@idle.signedOutToast:You were signed out after 5 minutes without activity. Please log in again.`,
     );
   }
 }

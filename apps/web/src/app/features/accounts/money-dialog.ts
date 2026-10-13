@@ -57,14 +57,17 @@ export type MoneyAction = 'deposit' | 'withdraw';
           type="button"
           class="btn-close"
           aria-label="Close"
-          i18n-aria-label
+          i18n-aria-label="@@common.close"
           (click)="activeModal.dismiss()"
         ></button>
       </div>
 
       <div class="modal-body">
         @if (account(); as account) {
-          <p class="text-body-secondary small" i18n>
+          <p
+            class="text-body-secondary small"
+            i18n="@@money.accountAndAvailable"
+          >
             {{ account.accountNumber | accountNumber }} · Available
             {{ account.balance | inr }}
           </p>
@@ -76,9 +79,9 @@ export type MoneyAction = 'deposit' | 'withdraw';
 
         <nb-form-field
           label="Amount (₹)"
-          i18n-label
+          i18n-label="@@common.amountRupees"
           hint="Up to ₹1,00,000 at a time."
-          i18n-hint
+          i18n-hint="@@money.amountHint"
         >
           <input
             nbInput
@@ -90,7 +93,10 @@ export type MoneyAction = 'deposit' | 'withdraw';
           />
         </nb-form-field>
 
-        <nb-form-field label="Description (optional)" i18n-label>
+        <nb-form-field
+          label="Description (optional)"
+          i18n-label="@@common.descriptionOptional"
+        >
           <input
             nbInput
             id="description"
@@ -107,7 +113,7 @@ export type MoneyAction = 'deposit' | 'withdraw';
           type="button"
           variant="outline-secondary"
           (click)="activeModal.dismiss()"
-          i18n
+          i18n="@@common.cancel"
         >
           Cancel
         </button>
@@ -131,10 +137,14 @@ export class MoneyDialog {
   protected readonly account = signal<AccountDto | null>(null);
   protected readonly action = signal<MoneyAction>('deposit');
   protected readonly title = computed(() =>
-    this.action() === 'deposit' ? $localize`Add money` : $localize`Withdraw`,
+    this.action() === 'deposit'
+      ? $localize`:@@money.titleDeposit:Add money`
+      : $localize`:@@money.titleWithdraw:Withdraw`,
   );
   protected readonly descriptionHint = computed(() =>
-    this.action() === 'deposit' ? $localize`e.g. Salary` : $localize`e.g. ATM`,
+    this.action() === 'deposit'
+      ? $localize`:@@money.descriptionExampleDeposit:e.g. Salary`
+      : $localize`:@@money.descriptionExampleWithdraw:e.g. ATM`,
   );
   protected readonly pending = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -198,7 +208,7 @@ export class MoneyDialog {
     const parsed = RupeeInputSchema.safeParse(control.value);
     return parsed.success && parsed.data > account.balance
       ? {
-          zod: $localize`Insufficient funds (available ${formatInr(account.balance, this.locale)}:amount:)`,
+          zod: $localize`:@@common.insufficientFundsWithBalance:Insufficient funds (available ${formatInr(account.balance, this.locale)}:amount:)`,
         }
       : null;
   }

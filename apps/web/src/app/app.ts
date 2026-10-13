@@ -54,7 +54,7 @@ import { Toasts } from './core/toast/toasts';
               type="button"
               class="btn btn-sm btn-outline-light"
               (click)="logout()"
-              i18n
+              i18n="@@nav.logOut"
             >
               Log out
             </button>
@@ -62,13 +62,13 @@ import { Toasts } from './core/toast/toasts';
             <a
               class="btn btn-sm btn-outline-light nb-guest-only"
               routerLink="/login"
-              i18n
+              i18n="@@common.logIn"
               >Log in</a
             >
             <a
               class="btn btn-sm btn-light nb-guest-only"
               routerLink="/register"
-              i18n
+              i18n="@@common.openAccount"
               >Open account</a
             >
           }
@@ -82,7 +82,10 @@ import { Toasts } from './core/toast/toasts';
       <router-outlet />
     </main>
 
-    <footer class="container pb-4 small text-body-secondary" i18n>
+    <footer
+      class="container pb-4 small text-body-secondary"
+      i18n="@@nav.footerDisclaimer"
+    >
       Demo application for learning – not a real bank. No real money moves.
     </footer>
 
@@ -108,19 +111,25 @@ export class App {
   }
 
   protected readonly links = computed(() => [
-    { path: '/dashboard', label: $localize`Dashboard` },
-    { path: '/transactions', label: $localize`Transactions` },
-    { path: '/transfer', label: $localize`Transfer` },
-    { path: '/beneficiaries', label: $localize`Beneficiaries` },
-    { path: '/security', label: $localize`Security` },
+    { path: '/dashboard', label: $localize`:@@nav.dashboard:Dashboard` },
+    {
+      path: '/transactions',
+      label: $localize`:@@common.transactions:Transactions`,
+    },
+    { path: '/transfer', label: $localize`:@@common.transfer:Transfer` },
+    {
+      path: '/beneficiaries',
+      label: $localize`:@@common.beneficiaries:Beneficiaries`,
+    },
+    { path: '/security', label: $localize`:@@common.security:Security` },
     ...(this.auth.isAdmin()
-      ? [{ path: '/admin', label: $localize`Admin` }]
+      ? [{ path: '/admin', label: $localize`:@@nav.admin:Admin` }]
       : []),
   ]);
 
   async logout(): Promise<void> {
     await this.auth.logout();
     await this.router.navigateByUrl('/login');
-    this.toasts.info($localize`You're logged out`);
+    this.toasts.info($localize`:@@nav.loggedOutToast:You're logged out`);
   }
 }

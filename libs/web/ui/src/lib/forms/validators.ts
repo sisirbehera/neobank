@@ -40,7 +40,8 @@ export function errorMessage(errors: ValidationErrors | null): string | null {
   if (!errors) return null;
   if (errors['server']) return translateValidationMessage(errors['server']);
   if (errors['zod']) return translateValidationMessage(errors['zod']);
-  if (errors['required']) return $localize`This field is required`;
+  if (errors['required'])
+    return $localize`:@@validation.required:This field is required`;
   if (errors['mismatch']) return errors['mismatch'];
-  return $localize`Invalid value`;
+  return $localize`:@@validation.invalid:Invalid value`;
 }

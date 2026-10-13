@@ -45,7 +45,7 @@ export const SystemStatusStore = signalStore(
                 patchState(store, {
                   health: null,
                   loading: false,
-                  error: $localize`The API is not reachable.`,
+                  error: $localize`:@@home.apiUnreachable:The API is not reachable.`,
                 }),
             }),
           ),

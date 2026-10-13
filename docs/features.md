@@ -141,7 +141,7 @@ Measured on the production build with Lighthouse (simulated mid-range phone on s
 | Home   | 83          | 100           | 100            | 100 |
 | Log in | 84          | 100           | 100            | 100 |
 
-Startup download: **629 KB raw / 136 KB gzipped** after Day 7 (down from 1.10 MB / 222 KB). Day 8 added toasts and idle logout to the shell (139 KB), Day 9 hydration and event replay (149 KB), and Day 10 the language switcher and the translation tables (**153 KB**, the same for each language). What made the difference on Day 7:
+Startup download: **629 KB raw / 136 KB gzipped** after Day 7 (down from 1.10 MB / 222 KB). Day 8 added toasts and idle logout to the shell (139 KB), Day 9 hydration and event replay (149 KB), and Day 10 the language switcher and the translation tables and hydration of translated components (**154 KB**, the same for each language). What made the difference on Day 7:
 
 - **`zod/mini` for the shared schemas.** Same rules, written as functions, so bundlers keep only what is used. Zod went from ~450 KB to ~25 KB in the browser. The API keeps full `zod`, and both share Zod's core.
 - **`@neobank/web/ui/theme` secondary entry point.** The app shell no longer pulls the whole UI library (forms, chart) into the first download.

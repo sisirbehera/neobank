@@ -40,9 +40,13 @@ import { ACCOUNT_TYPE_LABELS } from '../accounts/labels';
     <header
       class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4"
     >
-      <h1 class="h3 mb-0" i18n>Hello, {{ auth.user()?.name }}</h1>
+      <h1 class="h3 mb-0" i18n="@@dashboard.hello">
+        Hello, {{ auth.user()?.name }}
+      </h1>
       @if (accounts.canOpenMore() && accounts.entities().length > 0) {
-        <a nbButton routerLink="/accounts/new" i18n>Open account</a>
+        <a nbButton routerLink="/accounts/new" i18n="@@common.openAccount"
+          >Open account</a
+        >
       }
     </header>
 
@@ -53,21 +57,28 @@ import { ACCOUNT_TYPE_LABELS } from '../accounts/labels';
           type="button"
           class="btn btn-link p-0 ms-2"
           (click)="accounts.load(true)"
-          i18n
+          i18n="@@dashboard.retry"
         >
           Retry
         </button>
       </div>
     } @else if (!accounts.loaded()) {
-      <p class="text-body-secondary" i18n>Loading your accounts…</p>
+      <p class="text-body-secondary" i18n="@@dashboard.loading">
+        Loading your accounts…
+      </p>
     } @else if (accounts.entities().length === 0) {
       <section class="card shadow-sm">
         <div class="card-body text-center py-5">
-          <h2 class="h5" i18n>You don't have any accounts yet</h2>
-          <p class="text-body-secondary" i18n>
+          <h2 class="h5" i18n="@@dashboard.emptyTitle">
+            You don't have any accounts yet
+          </h2>
+          <p class="text-body-secondary" i18n="@@dashboard.emptyText">
             Open a savings or current account in seconds.
           </p>
-          <a nbButton routerLink="/accounts/new" i18n
+          <a
+            nbButton
+            routerLink="/accounts/new"
+            i18n="@@dashboard.openFirstAccount"
             >Open your first account</a
           >
         </div>
@@ -75,16 +86,16 @@ import { ACCOUNT_TYPE_LABELS } from '../accounts/labels';
     } @else {
       <section class="card shadow-sm mb-4 border-0 nb-total">
         <div class="card-body">
-          <div class="small opacity-75" i18n>Total balance</div>
+          <div class="small opacity-75" i18n="@@dashboard.totalBalance">
+            Total balance
+          </div>
           <div class="display-6 fw-semibold" data-testid="total-balance">
             {{ accounts.totalBalance() | inr }}
           </div>
-          <div class="small opacity-75" i18n>
-            {accounts.entities().length, plural,
-              =1 {across 1 account}
-              other {across {{ accounts.entities().length }} accounts}
-            }
-          </div>
+          <!-- The plural must be the whole content (one message, one ID), so
+               prettier must not add line breaks around it. -->
+          <!-- prettier-ignore -->
+          <div class="small opacity-75" i18n="@@dashboard.accountCount">{accounts.entities().length, plural, =1 {across 1 account} other {across {{ accounts.entities().length }} accounts}}</div>
         </div>
       </section>
 
@@ -125,27 +136,33 @@ import { ACCOUNT_TYPE_LABELS } from '../accounts/labels';
         <div class="col-12 col-xl-7">
           <nb-card
             title="Money in and out"
-            i18n-title
+            i18n-title="@@dashboard.chartTitle"
             subtitle="Last 6 months · transfers between your own accounts excluded"
-            i18n-subtitle
+            i18n-subtitle="@@dashboard.chartSubtitle"
           >
             @if (chart(); as c) {
               <nb-column-chart
                 caption="Money in and money out per month, last 6 months"
-                i18n-caption
+                i18n-caption="@@dashboard.chartCaption"
                 [categories]="c.categories"
                 [series]="c.series"
                 [format]="formatInr"
                 [formatTick]="formatInrCompact"
               />
             } @else {
-              <p class="text-body-secondary mb-0" i18n>Loading…</p>
+              <p class="text-body-secondary mb-0" i18n="@@common.loading">
+                Loading…
+              </p>
             }
           </nb-card>
         </div>
         <div class="col-12 col-xl-5">
-          <nb-card title="Recent activity" i18n-title>
-            <a cardActions class="small" routerLink="/transactions" i18n
+          <nb-card title="Recent activity" i18n-title="@@common.recentActivity">
+            <a
+              cardActions
+              class="small"
+              routerLink="/transactions"
+              i18n="@@dashboard.viewAll"
               >View all</a
             >
             <nb-activity-list
@@ -210,8 +227,14 @@ export class Dashboard {
         };
       }),
       series: [
-        { label: $localize`Money in`, values: months.map((m) => m.inPaise) },
-        { label: $localize`Money out`, values: months.map((m) => m.outPaise) },
+        {
+          label: $localize`:@@common.moneyIn:Money in`,
+          values: months.map((m) => m.inPaise),
+        },
+        {
+          label: $localize`:@@common.moneyOut:Money out`,
+          values: months.map((m) => m.outPaise),
+        },
       ],
     };
   });

@@ -17,23 +17,36 @@ import { describeDevice } from './device';
 
 /** What each event means to the customer, and whether it deserves a look. */
 const EVENTS: Record<SecurityEventType, { label: string; warn?: boolean }> = {
-  SIGNED_IN: { label: $localize`Signed in` },
-  SIGN_IN_FAILED: { label: $localize`Failed sign-in attempt`, warn: true },
+  SIGNED_IN: { label: $localize`:@@securityActivity.event.signedIn:Signed in` },
+  SIGN_IN_FAILED: {
+    label: $localize`:@@securityActivity.event.signInFailed:Failed sign-in attempt`,
+    warn: true,
+  },
   ACCOUNT_LOCKED: {
-    label: $localize`Locked for 15 minutes after too many wrong attempts`,
+    label: $localize`:@@securityActivity.event.accountLocked:Locked for 15 minutes after too many wrong attempts`,
     warn: true,
   },
-  PASSWORD_CHANGED: { label: $localize`Password changed` },
-  MFA_ENABLED: { label: $localize`Two-step verification turned on` },
+  PASSWORD_CHANGED: {
+    label: $localize`:@@securityActivity.event.passwordChanged:Password changed`,
+  },
+  MFA_ENABLED: {
+    label: $localize`:@@securityActivity.event.mfaEnabled:Two-step verification turned on`,
+  },
   MFA_DISABLED: {
-    label: $localize`Two-step verification turned off`,
+    label: $localize`:@@securityActivity.event.mfaDisabled:Two-step verification turned off`,
     warn: true,
   },
-  BACKUP_CODES_REGENERATED: { label: $localize`New backup codes created` },
-  DEVICE_SIGNED_OUT: { label: $localize`A device was signed out` },
-  OTHER_DEVICES_SIGNED_OUT: { label: $localize`All other devices signed out` },
+  BACKUP_CODES_REGENERATED: {
+    label: $localize`:@@securityActivity.event.backupCodesRegenerated:New backup codes created`,
+  },
+  DEVICE_SIGNED_OUT: {
+    label: $localize`:@@securityActivity.event.deviceSignedOut:A device was signed out`,
+  },
+  OTHER_DEVICES_SIGNED_OUT: {
+    label: $localize`:@@common.otherDevicesSignedOut:All other devices signed out`,
+  },
   STOLEN_SESSION_BLOCKED: {
-    label: $localize`A copied sign-in was blocked, so every device was signed out`,
+    label: $localize`:@@securityActivity.event.stolenSessionBlocked:A copied sign-in was blocked, so every device was signed out`,
     warn: true,
   },
 };
@@ -45,9 +58,9 @@ const EVENTS: Record<SecurityEventType, { label: string; warn?: boolean }> = {
   template: `
     <nb-card
       title="Recent security activity"
-      i18n-title
+      i18n-title="@@securityActivity.title"
       subtitle="Sign-ins and changes from the last 90 days. Don't recognise something? Change your password."
-      i18n-subtitle
+      i18n-subtitle="@@securityActivity.subtitle"
     >
       <button
         cardActions
@@ -56,7 +69,7 @@ const EVENTS: Record<SecurityEventType, { label: string; warn?: boolean }> = {
         variant="outline-primary"
         [loading]="loading()"
         (click)="reload()"
-        i18n
+        i18n="@@common.refresh"
       >
         Refresh
       </button>
@@ -71,7 +84,11 @@ const EVENTS: Record<SecurityEventType, { label: string; warn?: boolean }> = {
             <div class="fw-medium" [class.text-danger]="info(e).warn">
               {{ info(e).label }}
               @if (e.current) {
-                <span class="badge text-bg-success ms-1" i18n>This device</span>
+                <span
+                  class="badge text-bg-success ms-1"
+                  i18n="@@common.thisDevice"
+                  >This device</span
+                >
               }
             </div>
             <small class="text-body-secondary">
@@ -86,7 +103,10 @@ const EVENTS: Record<SecurityEventType, { label: string; warn?: boolean }> = {
           </li>
         } @empty {
           @if (!loading()) {
-            <li class="list-group-item px-0 text-body-secondary" i18n>
+            <li
+              class="list-group-item px-0 text-body-secondary"
+              i18n="@@securityActivity.empty"
+            >
               Nothing yet.
             </li>
           }

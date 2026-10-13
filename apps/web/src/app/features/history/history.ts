@@ -70,14 +70,14 @@ const FILTERS = ['accountId', 'type', 'direction', 'from', 'to', 'q'] as const;
     <header
       class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3"
     >
-      <h1 class="h3 mb-0" i18n>Transactions</h1>
+      <h1 class="h3 mb-0" i18n="@@common.transactions">Transactions</h1>
       <button
         nbButton
         variant="outline-primary"
         [loading]="exporting()"
         [disabled]="!results()?.total"
         (click)="exportCsv()"
-        i18n
+        i18n="@@history.export"
       >
         Export CSV
       </button>
@@ -90,11 +90,14 @@ const FILTERS = ['accountId', 'type', 'direction', 'from', 'to', 'q'] as const;
       (ngSubmit)="$event.preventDefault()"
     >
       <div class="col-12 col-md-6 col-lg-4">
-        <label class="form-label small mb-1" for="f-account" i18n
+        <label
+          class="form-label small mb-1"
+          for="f-account"
+          i18n="@@history.account"
           >Account</label
         >
         <select nbInput id="f-account" formControlName="accountId">
-          <option value="" i18n>All accounts</option>
+          <option value="" i18n="@@history.allAccounts">All accounts</option>
           @for (a of accounts.entities(); track a.id) {
             <option [value]="a.id">
               {{ a.nickname || typeLabels[a.type] }} ·
@@ -104,40 +107,54 @@ const FILTERS = ['accountId', 'type', 'direction', 'from', 'to', 'q'] as const;
         </select>
       </div>
       <div class="col-6 col-md-3 col-lg-2">
-        <label class="form-label small mb-1" for="f-type" i18n>Type</label>
+        <label class="form-label small mb-1" for="f-type" i18n="@@history.type"
+          >Type</label
+        >
         <select nbInput id="f-type" formControlName="type">
-          <option value="" i18n>All types</option>
+          <option value="" i18n="@@history.allTypes">All types</option>
           @for (t of types; track t.value) {
             <option [value]="t.value">{{ t.label }}</option>
           }
         </select>
       </div>
       <div class="col-6 col-md-3 col-lg-2">
-        <label class="form-label small mb-1" for="f-direction" i18n
+        <label
+          class="form-label small mb-1"
+          for="f-direction"
+          i18n="@@history.inOut"
           >In / out</label
         >
         <select nbInput id="f-direction" formControlName="direction">
-          <option value="" i18n>Both</option>
-          <option value="CREDIT" i18n>Money in</option>
-          <option value="DEBIT" i18n>Money out</option>
+          <option value="" i18n="@@history.both">Both</option>
+          <option value="CREDIT" i18n="@@common.moneyIn">Money in</option>
+          <option value="DEBIT" i18n="@@common.moneyOut">Money out</option>
         </select>
       </div>
       <div class="col-6 col-md-3 col-lg-2">
-        <label class="form-label small mb-1" for="f-from" i18n>From</label>
+        <label
+          class="form-label small mb-1"
+          for="f-from"
+          i18n="@@common.fromLabel"
+          >From</label
+        >
         <input nbInput id="f-from" type="date" formControlName="from" />
       </div>
       <div class="col-6 col-md-3 col-lg-2">
-        <label class="form-label small mb-1" for="f-to" i18n>To</label>
+        <label class="form-label small mb-1" for="f-to" i18n="@@common.toLabel"
+          >To</label
+        >
         <input nbInput id="f-to" type="date" formControlName="to" />
       </div>
       <div class="col-12 col-md-6 col-lg-4 order-first">
-        <label class="form-label small mb-1" for="f-q" i18n>Search</label>
+        <label class="form-label small mb-1" for="f-q" i18n="@@history.search"
+          >Search</label
+        >
         <input
           nbInput
           id="f-q"
           type="search"
           placeholder="Description or name"
-          i18n-placeholder
+          i18n-placeholder="@@history.searchPlaceholder"
           formControlName="q"
         />
       </div>
@@ -147,7 +164,7 @@ const FILTERS = ['accountId', 'type', 'direction', 'from', 'to', 'q'] as const;
             type="button"
             class="btn btn-link btn-sm p-0"
             (click)="clear()"
-            i18n
+            i18n="@@history.clearFilters"
           >
             Clear filters
           </button>
@@ -163,7 +180,7 @@ const FILTERS = ['accountId', 'type', 'direction', 'from', 'to', 'q'] as const;
 
         @if (results(); as p) {
           @if (p.items.length === 0) {
-            <p class="text-body-secondary mb-0" i18n>
+            <p class="text-body-secondary mb-0" i18n="@@history.empty">
               No transactions match these filters.
             </p>
           } @else {
@@ -175,14 +192,16 @@ const FILTERS = ['accountId', 'type', 'direction', 'from', 'to', 'q'] as const;
               <table class="table align-middle mb-0">
                 <thead>
                   <tr>
-                    <th scope="col" i18n>Date</th>
-                    <th scope="col" i18n>Description</th>
-                    <th scope="col" i18n>Account</th>
-                    <th scope="col" class="text-end" i18n>Amount</th>
+                    <th scope="col" i18n="@@history.date">Date</th>
+                    <th scope="col" i18n="@@common.description">Description</th>
+                    <th scope="col" i18n="@@history.account">Account</th>
+                    <th scope="col" class="text-end" i18n="@@common.amount">
+                      Amount
+                    </th>
                     <th
                       scope="col"
                       class="text-end d-none d-md-table-cell"
-                      i18n
+                      i18n="@@history.balance"
                     >
                       Balance
                     </th>
@@ -201,11 +220,11 @@ const FILTERS = ['accountId', 'type', 'direction', 'from', 'to', 'q'] as const;
                           @if (e.counterparty) {
                             ·
                             @if (e.direction === 'DEBIT') {
-                              <ng-container i18n
+                              <ng-container i18n="@@activity.toPerson"
                                 >To {{ e.counterparty }}</ng-container
                               >
                             } @else {
-                              <ng-container i18n
+                              <ng-container i18n="@@activity.fromPerson"
                                 >From {{ e.counterparty }}</ng-container
                               >
                             }
@@ -239,7 +258,7 @@ const FILTERS = ['accountId', 'type', 'direction', 'from', 'to', 'q'] as const;
             <div
               class="d-flex flex-wrap gap-2 justify-content-between align-items-center mt-3"
             >
-              <small class="text-body-secondary" i18n>
+              <small class="text-body-secondary" i18n="@@history.showing">
                 Showing {{ (p.page - 1) * p.pageSize + 1 }}–{{
                   (p.page - 1) * p.pageSize + p.items.length
                 }}
@@ -260,7 +279,9 @@ const FILTERS = ['accountId', 'type', 'direction', 'from', 'to', 'q'] as const;
             </div>
           }
         } @else if (!error()) {
-          <p class="text-body-secondary mb-0" i18n>Loading…</p>
+          <p class="text-body-secondary mb-0" i18n="@@common.loading">
+            Loading…
+          </p>
         }
       </div>
     </section>

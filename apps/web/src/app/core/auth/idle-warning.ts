@@ -22,8 +22,10 @@ import { IdleLogoutService } from './idle-logout.service';
         aria-labelledby="idle-title"
         aria-describedby="idle-text"
       >
-        <h2 id="idle-title" class="h5" i18n>Are you still there?</h2>
-        <p id="idle-text" class="mb-3" i18n>
+        <h2 id="idle-title" class="h5" i18n="@@idle.areYouStillThere">
+          Are you still there?
+        </h2>
+        <p id="idle-text" class="mb-3" i18n="@@idle.countdown">
           For your security, you'll be signed out in
           <strong>{{ seconds }}</strong> seconds.
         </p>
@@ -32,7 +34,7 @@ import { IdleLogoutService } from './idle-logout.service';
           type="button"
           class="btn btn-primary"
           (click)="idle.touch(true)"
-          i18n
+          i18n="@@idle.staySignedIn"
         >
           Stay signed in
         </button>

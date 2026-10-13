@@ -67,10 +67,14 @@ Log in as the admin → **Admin → Reset demo data**. This deletes Priya and Ra
 
 The app is built once per language ([0013](decisions/0013-built-in-i18n-per-language-builds.md)), and a missing Hindi translation fails the build. To add or change text:
 
-1. Write the English in the template with an `i18n` attribute (`<p i18n>…</p>`, `label="…" i18n-label`), or in TypeScript with `$localize`.
-2. Run `npx nx run web:extract-i18n`. It rewrites `apps/web/src/locale/messages.json`. Changing an English text gives it a new ID.
-3. Add the Hindi for each new or changed ID to `apps/web/src/locale/messages.hi.json`. Keep placeholders such as `{$INTERPOLATION}` and `{$START_LINK}` exactly as they are.
-4. Run `npx nx build web`. It names every ID that still has no translation.
+Every message has a readable ID, `area.what`: `login.title`, `transfer.confirm`, `error.invalidCredentials`. Texts used in several places live under `common.` (`common.cancel`).
+
+1. **New text:** mark it with its ID. In a template, `<p i18n="@@login.title">…</p>` or `label="…" i18n-label="@@login.emailLabel"`; in TypeScript, `` $localize`:@@login.title:Log in to NeoBank` ``.
+2. Run `npx nx run web:extract-i18n`. It rewrites `apps/web/src/locale/messages.json` (English, by ID).
+3. Add or update the Hindi under the same ID in `apps/web/src/locale/messages.hi.json` (sorted by ID, so `login.*` entries sit together). Keep placeholders such as `{$amount}` and `{$START_LINK}` exactly as they are.
+4. Run `npx nx test web` (`translations.spec.ts` checks that every ID has Hindi, that none is left over, and that the placeholders match) and `npx nx build web`.
+
+**Changing the wording of existing English text keeps its ID, so nothing fails if you forget the Hindi.** Update the Hindi in the same commit. The change is visible in the pull request as a diff of `messages.json`.
 
 A new message in a shared Zod schema also needs an entry in `apps/web/src/app/core/i18n/messages.ts`; `validation-messages.spec.ts` fails until it has one. Admin screens are English-only and need none of this.
 

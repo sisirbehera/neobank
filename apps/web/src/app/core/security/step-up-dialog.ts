@@ -14,8 +14,8 @@ import { toApiError } from '../http/api-error';
 import { SecurityApi } from './security.api';
 
 const PROMPTS: Record<StepUpAction, string> = {
-  ADD_BENEFICIARY: $localize`Adding a new beneficiary needs a fresh code.`,
-  LARGE_TRANSFER: $localize`Transfers over ₹10,000 to other people need a fresh code.`,
+  ADD_BENEFICIARY: $localize`:@@stepUp.reasonAddBeneficiary:Adding a new beneficiary needs a fresh code.`,
+  LARGE_TRANSFER: $localize`:@@stepUp.reasonLargeTransfer:Transfers over ₹10,000 to other people need a fresh code.`,
 };
 
 /** Asks for a 2FA code and resolves with a step-up token (see stepUpInterceptor). */
@@ -26,12 +26,12 @@ const PROMPTS: Record<StepUpAction, string> = {
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
-        <h2 class="modal-title h5" i18n>Confirm it's you</h2>
+        <h2 class="modal-title h5" i18n="@@stepUp.title">Confirm it's you</h2>
         <button
           type="button"
           class="btn-close"
           aria-label="Close"
-          i18n-aria-label
+          i18n-aria-label="@@common.close"
           (click)="activeModal.dismiss()"
         ></button>
       </div>
@@ -42,9 +42,9 @@ const PROMPTS: Record<StepUpAction, string> = {
         }
         <nb-form-field
           label="Code from your authenticator app"
-          i18n-label
+          i18n-label="@@stepUp.codeLabel"
           hint="Or one of your backup codes."
-          i18n-hint
+          i18n-hint="@@stepUp.codeHint"
         >
           <input
             nbInput
@@ -61,11 +61,16 @@ const PROMPTS: Record<StepUpAction, string> = {
           type="button"
           variant="outline-secondary"
           (click)="activeModal.dismiss()"
-          i18n
+          i18n="@@common.cancel"
         >
           Cancel
         </button>
-        <button nbButton type="submit" [loading]="pending()" i18n>
+        <button
+          nbButton
+          type="submit"
+          [loading]="pending()"
+          i18n="@@stepUp.confirm"
+        >
           Confirm
         </button>
       </div>

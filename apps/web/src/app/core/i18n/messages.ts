@@ -16,44 +16,44 @@ import { ACCOUNT_STATUS_LABELS } from '../../features/accounts/labels';
  */
 export const VALIDATION_MESSAGES: Record<string, string> = {
   // auth
-  'Enter a valid email address': $localize`Enter a valid email address`,
-  'Name must be at least 2 characters': $localize`Name must be at least 2 characters`,
-  'Name must be at most 80 characters': $localize`Name must be at most 80 characters`,
-  'Password is required': $localize`Password is required`,
-  'Password must be at least 8 characters': $localize`Password must be at least 8 characters`,
-  'Password must be at most 72 characters': $localize`Password must be at most 72 characters`,
-  'Password must contain a letter': $localize`Password must contain a letter`,
-  'Password must contain a number': $localize`Password must contain a number`,
+  'Enter a valid email address': $localize`:@@validation.emailInvalid:Enter a valid email address`,
+  'Name must be at least 2 characters': $localize`:@@validation.nameTooShort:Name must be at least 2 characters`,
+  'Name must be at most 80 characters': $localize`:@@validation.nameTooLong:Name must be at most 80 characters`,
+  'Password is required': $localize`:@@validation.passwordRequired:Password is required`,
+  'Password must be at least 8 characters': $localize`:@@validation.passwordTooShort:Password must be at least 8 characters`,
+  'Password must be at most 72 characters': $localize`:@@validation.passwordTooLong:Password must be at most 72 characters`,
+  'Password must contain a letter': $localize`:@@validation.passwordNeedsLetter:Password must contain a letter`,
+  'Password must contain a number': $localize`:@@validation.passwordNeedsNumber:Password must contain a number`,
   // security
-  'Current password is required': $localize`Current password is required`,
-  'Enter the 6-digit code from your authenticator app': $localize`Enter the 6-digit code from your authenticator app`,
-  'Enter the 6-digit code or a backup code': $localize`Enter the 6-digit code or a backup code`,
-  'The new password must be different': $localize`The new password must be different`,
+  'Current password is required': $localize`:@@validation.currentPasswordRequired:Current password is required`,
+  'Enter the 6-digit code from your authenticator app': $localize`:@@validation.mfaCodeFormat:Enter the 6-digit code from your authenticator app`,
+  'Enter the 6-digit code or a backup code': $localize`:@@validation.mfaOrBackupCodeFormat:Enter the 6-digit code or a backup code`,
+  'The new password must be different': $localize`:@@validation.newPasswordSameAsOld:The new password must be different`,
   // money and accounts
-  'Enter an amount': $localize`Enter an amount`,
-  'Enter an amount like 1500 or 1500.50': $localize`Enter an amount like 1500 or 1500.50`,
-  'Amount cannot be negative': $localize`Amount cannot be negative`,
-  'Amount cannot exceed ₹1,00,000': $localize`Amount cannot exceed ₹1,00,000`,
-  'Amount must be a whole number of paise': $localize`Amount must be a whole number of paise`,
-  'Amount must be greater than zero': $localize`Amount must be greater than zero`,
-  'Description must be at most 100 characters': $localize`Description must be at most 100 characters`,
-  'Nickname must be at most 30 characters': $localize`Nickname must be at most 30 characters`,
+  'Enter an amount': $localize`:@@validation.amountRequired:Enter an amount`,
+  'Enter an amount like 1500 or 1500.50': $localize`:@@validation.amountFormat:Enter an amount like 1500 or 1500.50`,
+  'Amount cannot be negative': $localize`:@@validation.amountNegative:Amount cannot be negative`,
+  'Amount cannot exceed ₹1,00,000': $localize`:@@validation.amountTooLarge:Amount cannot exceed ₹1,00,000`,
+  'Amount must be a whole number of paise': $localize`:@@validation.amountWholePaise:Amount must be a whole number of paise`,
+  'Amount must be greater than zero': $localize`:@@validation.amountNotPositive:Amount must be greater than zero`,
+  'Description must be at most 100 characters': $localize`:@@validation.descriptionTooLong:Description must be at most 100 characters`,
+  'Nickname must be at most 30 characters': $localize`:@@validation.nicknameTooLong:Nickname must be at most 30 characters`,
   // transfers and beneficiaries
-  'Account number is required': $localize`Account number is required`,
-  'Account numbers look like NB1234567890': $localize`Account numbers look like NB1234567890`,
-  'This account number is not valid. Check it for typos.': $localize`This account number is not valid. Check it for typos.`,
-  'Choose the account to pay from': $localize`Choose the account to pay from`,
+  'Account number is required': $localize`:@@validation.accountNumberRequired:Account number is required`,
+  'Account numbers look like NB1234567890': $localize`:@@validation.accountNumberFormat:Account numbers look like NB1234567890`,
+  'This account number is not valid. Check it for typos.': $localize`:@@validation.accountNumberChecksum:This account number is not valid. Check it for typos.`,
+  'Choose the account to pay from': $localize`:@@validation.fromAccountRequired:Choose the account to pay from`,
   // history
-  'Use the format YYYY-MM-DD': $localize`Use the format YYYY-MM-DD`,
-  '"From" must be on or before "To"': $localize`"From" must be on or before "To"`,
+  'Use the format YYYY-MM-DD': $localize`:@@validation.dateFormat:Use the format YYYY-MM-DD`,
+  '"From" must be on or before "To"': $localize`:@@validation.dateRangeOrder:"From" must be on or before "To"`,
   // Field errors sent by the API
-  'An account with this email already exists': $localize`An account with this email already exists`,
-  'Current password is not correct': $localize`Current password is not correct`,
-  'Password is not correct': $localize`Password is not correct`,
-  'That code is not correct': $localize`That code is not correct`,
-  'This code was already used. Wait for the next one.': $localize`This code was already used. Wait for the next one.`,
-  'No NeoBank account has this number': $localize`No NeoBank account has this number`,
-  'This account is already in your beneficiaries': $localize`This account is already in your beneficiaries`,
+  'An account with this email already exists': $localize`:@@validation.emailTaken:An account with this email already exists`,
+  'Current password is not correct': $localize`:@@validation.currentPasswordWrong:Current password is not correct`,
+  'Password is not correct': $localize`:@@validation.passwordWrong:Password is not correct`,
+  'That code is not correct': $localize`:@@validation.codeWrong:That code is not correct`,
+  'This code was already used. Wait for the next one.': $localize`:@@validation.codeAlreadyUsed:This code was already used. Wait for the next one.`,
+  'No NeoBank account has this number': $localize`:@@validation.accountNumberUnknown:No NeoBank account has this number`,
+  'This account is already in your beneficiaries': $localize`:@@validation.beneficiaryExists:This account is already in your beneficiaries`,
 };
 
 /** Messages only staff see (admin screens are English-only). */
@@ -74,64 +74,66 @@ export function apiErrorText(code: string, meta: Meta): string | undefined {
   const locale = $localize.locale ?? 'en-IN';
   switch (code) {
     case 'STEP_UP_CANCELLED':
-      return $localize`Verification was cancelled. Nothing was changed.`;
+      return $localize`:@@error.stepUpCancelled:Verification was cancelled. Nothing was changed.`;
     case 'NETWORK_ERROR':
-      return $localize`Cannot reach the server. Check your connection and try again.`;
+      return $localize`:@@error.networkError:Cannot reach the server. Check your connection and try again.`;
     case 'UNKNOWN':
     case 'INTERNAL_ERROR':
-      return $localize`Something went wrong. Please try again.`;
+      return $localize`:@@error.internalError:Something went wrong. Please try again.`;
     case 'INVALID_CREDENTIALS':
-      return $localize`Incorrect email or password`;
+      return $localize`:@@error.invalidCredentials:Incorrect email or password`;
     case 'SESSION_EXPIRED':
-      return $localize`Your session has expired. Please log in again.`;
+      return $localize`:@@error.sessionExpired:Your session has expired. Please log in again.`;
     case 'MFA_TOKEN_INVALID':
-      return $localize`Your sign-in attempt expired. Please log in again.`;
+      return $localize`:@@error.mfaTokenInvalid:Your sign-in attempt expired. Please log in again.`;
     case 'MFA_REQUIRED':
-      return $localize`Sign in again with two-step verification to continue`;
+      return $localize`:@@error.mfaRequired:Sign in again with two-step verification to continue`;
     case 'EMAIL_TAKEN':
-      return $localize`An account with this email already exists`;
+      return $localize`:@@validation.emailTaken:An account with this email already exists`;
     case 'ACCOUNT_LOCKED':
       return meta?.['minutes']
-        ? $localize`Too many failed attempts. Try again in ${meta['minutes']}:minutes: minute(s).`
-        : $localize`Too many failed attempts. Try again in a few minutes.`;
+        ? $localize`:@@error.accountLocked:Too many failed attempts. Try again in ${meta['minutes']}:minutes: minute(s).`
+        : $localize`:@@error.accountLockedGeneric:Too many failed attempts. Try again in a few minutes.`;
     case 'TOO_MANY_REQUESTS':
-      return $localize`Too many attempts. Please wait a few minutes and try again.`;
+      return $localize`:@@error.tooManyRequests:Too many attempts. Please wait a few minutes and try again.`;
     case 'INVALID_CODE':
-      return $localize`That code is not correct`;
+      return $localize`:@@validation.codeWrong:That code is not correct`;
     case 'CODE_ALREADY_USED':
-      return $localize`This code was already used. Wait for the next one.`;
+      return $localize`:@@validation.codeAlreadyUsed:This code was already used. Wait for the next one.`;
     case 'MFA_ALREADY_ENABLED':
-      return $localize`Two-step verification is already on`;
+      return $localize`:@@error.mfaAlreadyEnabled:Two-step verification is already on`;
     case 'MFA_NOT_ENABLED':
-      return $localize`Turn on two-step verification first`;
+      return $localize`:@@error.mfaNotEnabled:Turn on two-step verification first`;
     case 'MFA_SETUP_NOT_STARTED':
-      return $localize`Start the setup first`;
+      return $localize`:@@error.mfaSetupNotStarted:Start the setup first`;
     case 'DEMO_ACCOUNT':
-      return $localize`This is the shared demo account, so its security settings can't be changed. Register your own account to try them.`;
+      return $localize`:@@error.demoAccount:This is the shared demo account, so its security settings can't be changed. Register your own account to try them.`;
     case 'ACCOUNT_LIMIT':
-      return $localize`You can have at most ${MAX_ACCOUNTS_PER_USER}:max: accounts`;
+      return $localize`:@@error.accountLimit:You can have at most ${MAX_ACCOUNTS_PER_USER}:max: accounts`;
     case 'ACCOUNT_NOT_FOUND':
-      return $localize`No NeoBank account has this number`;
+      return $localize`:@@validation.accountNumberUnknown:No NeoBank account has this number`;
     case 'ACCOUNT_NOT_ACTIVE': {
       const status = ACCOUNT_STATUS_LABELS[meta?.['status'] as AccountStatus];
-      return status ? $localize`This account is ${status}:status:` : undefined;
+      return status
+        ? $localize`:@@error.accountNotActive:This account is ${status}:status:`
+        : undefined;
     }
     case 'RECIPIENT_NOT_ACTIVE':
-      return $localize`The receiving account cannot accept money right now`;
+      return $localize`:@@error.recipientNotActive:The receiving account cannot accept money right now`;
     case 'INSUFFICIENT_FUNDS':
-      return $localize`Insufficient funds`;
+      return $localize`:@@error.insufficientFunds:Insufficient funds`;
     case 'DAILY_LIMIT_EXCEEDED':
       return meta?.['limitPaise']
-        ? $localize`This would exceed your daily limit of ${formatInr(Number(meta['limitPaise']), locale)}:limit: for transfers to others`
-        : $localize`This would exceed your daily limit for transfers to others`;
+        ? $localize`:@@error.dailyLimitExceeded:This would exceed your daily limit of ${formatInr(Number(meta['limitPaise']), locale)}:limit: for transfers to others`
+        : $localize`:@@error.dailyLimitExceededGeneric:This would exceed your daily limit for transfers to others`;
     case 'BENEFICIARY_REQUIRED':
-      return $localize`Add this account as a beneficiary before sending money to it`;
+      return $localize`:@@error.beneficiaryRequired:Add this account as a beneficiary before sending money to it`;
     case 'BENEFICIARY_EXISTS':
-      return $localize`This account is already in your beneficiaries`;
+      return $localize`:@@validation.beneficiaryExists:This account is already in your beneficiaries`;
     case 'BENEFICIARY_LIMIT':
-      return $localize`You can save at most ${MAX_BENEFICIARIES_PER_USER}:max: beneficiaries`;
+      return $localize`:@@error.beneficiaryLimit:You can save at most ${MAX_BENEFICIARIES_PER_USER}:max: beneficiaries`;
     case 'IDEMPOTENCY_KEY_REUSED':
-      return $localize`This Idempotency-Key was already used for a different request`;
+      return $localize`:@@error.idempotencyKeyReused:This Idempotency-Key was already used for a different request`;
     default:
       return undefined;
   }

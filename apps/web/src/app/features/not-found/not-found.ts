@@ -11,15 +11,19 @@ import { AuthStore } from '../../core/auth/auth.store';
   template: `
     <div class="text-center py-5">
       <p class="display-4 fw-semibold text-body-secondary mb-2">404</p>
-      <h1 class="h3" i18n>Page not found</h1>
-      <p class="text-body-secondary mb-4" i18n>
+      <h1 class="h3" i18n="@@notFound.title">Page not found</h1>
+      <p class="text-body-secondary mb-4" i18n="@@notFound.text">
         There's no page at <code>{{ path }}</code
         >. Check the address, or go back to where you were.
       </p>
       @if (auth.isAuthenticated()) {
-        <a nbButton routerLink="/dashboard" i18n>Go to dashboard</a>
+        <a nbButton routerLink="/dashboard" i18n="@@common.goToDashboard"
+          >Go to dashboard</a
+        >
       } @else {
-        <a nbButton routerLink="/" i18n>Go to home page</a>
+        <a nbButton routerLink="/" i18n="@@notFound.goToHomePage"
+          >Go to home page</a
+        >
       }
     </div>
   `,

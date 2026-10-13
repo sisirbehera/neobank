@@ -19,13 +19,13 @@ import { ToastService } from '../../core/toast/toast.service';
 const TYPES: { value: AccountType; title: string; text: string }[] = [
   {
     value: 'SAVINGS',
-    title: $localize`Savings account`,
-    text: $localize`For personal savings and everyday banking.`,
+    title: $localize`:@@account.savings:Savings account`,
+    text: $localize`:@@openAccount.savingsDescription:For personal savings and everyday banking.`,
   },
   {
     value: 'CURRENT',
-    title: $localize`Current account`,
-    text: $localize`For frequent transactions and business use.`,
+    title: $localize`:@@account.current:Current account`,
+    text: $localize`:@@openAccount.currentDescription:For frequent transactions and business use.`,
   },
 ];
 
@@ -36,9 +36,12 @@ const TYPES: { value: AccountType; title: string; text: string }[] = [
   template: `
     <div class="row justify-content-center">
       <div class="col-12 col-md-9 col-lg-6">
-        <nb-card title="Open a new account" i18n-title>
+        <nb-card title="Open a new account" i18n-title="@@openAccount.title">
           @if (!store.canOpenMore()) {
-            <div class="alert alert-info mb-0" i18n>
+            <div
+              class="alert alert-info mb-0"
+              i18n="@@openAccount.limitReached"
+            >
               You already have the maximum of {{ maxAccounts }} accounts.
               <a routerLink="/dashboard">Back to dashboard</a>
             </div>
@@ -49,7 +52,12 @@ const TYPES: { value: AccountType; title: string; text: string }[] = [
 
             <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
               <fieldset class="mb-3">
-                <legend class="form-label fs-6" i18n>Account type</legend>
+                <legend
+                  class="form-label fs-6"
+                  i18n="@@openAccount.accountType"
+                >
+                  Account type
+                </legend>
                 <div class="row g-2">
                   @for (type of types; track type.value) {
                     <div class="col-12 col-sm-6">
@@ -76,9 +84,9 @@ const TYPES: { value: AccountType; title: string; text: string }[] = [
 
               <nb-form-field
                 label="Nickname (optional)"
-                i18n-label
+                i18n-label="@@common.nicknameOptional"
                 hint="Shown on your dashboard, e.g. “Rainy day fund”."
-                i18n-hint
+                i18n-hint="@@openAccount.nicknameHint"
               >
                 <input
                   nbInput
@@ -92,7 +100,12 @@ const TYPES: { value: AccountType; title: string; text: string }[] = [
                 <a nbButton variant="outline-secondary" routerLink="/dashboard"
                   >Cancel</a
                 >
-                <button nbButton type="submit" [loading]="pending()" i18n>
+                <button
+                  nbButton
+                  type="submit"
+                  [loading]="pending()"
+                  i18n="@@openAccount.submit"
+                >
                   Open account
                 </button>
               </div>
@@ -132,7 +145,7 @@ export class OpenAccount {
     try {
       const account = await this.store.open(this.form.getRawValue());
       await this.router.navigate(['/accounts', account.id]);
-      this.toasts.success($localize`Account opened`);
+      this.toasts.success($localize`:@@openAccount.openedToast:Account opened`);
     } catch (err) {
       this.error.set(toApiError(err).message);
     } finally {

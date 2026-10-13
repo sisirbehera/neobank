@@ -17,11 +17,15 @@ import { SessionsCard } from './sessions-card';
   imports: [RouterLink, ActivityCard, MfaCard, PasswordCard, SessionsCard],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h1 class="h3 mb-4" i18n>Security</h1>
+    <h1 class="h3 mb-4" i18n="@@common.security">Security</h1>
     <div class="row g-4">
       @if (demo()) {
         <div class="col-12">
-          <div class="alert alert-info mb-0" role="status" i18n>
+          <div
+            class="alert alert-info mb-0"
+            role="status"
+            i18n="@@security.demoNotice"
+          >
             <strong>This is the shared demo account.</strong>
             Everyone trying NeoBank signs in with it, so its password and
             two-step verification can't be changed, and you only see your own

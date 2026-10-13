@@ -9,48 +9,48 @@ export const appRoutes: Route[] = [
   },
   {
     path: 'login',
-    title: $localize`Log in · NeoBank`,
+    title: $localize`:@@title.logIn:Log in · NeoBank`,
     canActivate: [guestGuard],
     loadComponent: () => import('./features/auth/login').then((m) => m.Login),
   },
   {
     path: 'register',
-    title: $localize`Open an account · NeoBank`,
+    title: $localize`:@@title.openAnAccount:Open an account · NeoBank`,
     canActivate: [guestGuard],
     loadComponent: () =>
       import('./features/auth/register').then((m) => m.Register),
   },
   {
     path: 'dashboard',
-    title: $localize`Dashboard · NeoBank`,
+    title: $localize`:@@title.dashboard:Dashboard · NeoBank`,
     canActivate: [authGuard],
     loadComponent: () =>
       import('./features/dashboard/dashboard').then((m) => m.Dashboard),
   },
   {
     path: 'accounts/new',
-    title: $localize`Open account · NeoBank`,
+    title: $localize`:@@title.openAccount:Open account · NeoBank`,
     canActivate: [authGuard],
     loadComponent: () =>
       import('./features/accounts/open-account').then((m) => m.OpenAccount),
   },
   {
     path: 'accounts/:id',
-    title: $localize`Account · NeoBank`,
+    title: $localize`:@@title.account:Account · NeoBank`,
     canActivate: [authGuard],
     loadComponent: () =>
       import('./features/accounts/account-detail').then((m) => m.AccountDetail),
   },
   {
     path: 'transfer',
-    title: $localize`Transfer · NeoBank`,
+    title: $localize`:@@title.transfer:Transfer · NeoBank`,
     canActivate: [authGuard],
     loadComponent: () =>
       import('./features/transfers/transfer').then((m) => m.Transfer),
   },
   {
     path: 'beneficiaries',
-    title: $localize`Beneficiaries · NeoBank`,
+    title: $localize`:@@title.beneficiaries:Beneficiaries · NeoBank`,
     canActivate: [authGuard],
     loadComponent: () =>
       import('./features/beneficiaries/beneficiaries').then(
@@ -59,14 +59,14 @@ export const appRoutes: Route[] = [
   },
   {
     path: 'security',
-    title: $localize`Security · NeoBank`,
+    title: $localize`:@@title.security:Security · NeoBank`,
     canActivate: [authGuard],
     loadComponent: () =>
       import('./features/security/security').then((m) => m.Security),
   },
   {
     path: 'transactions',
-    title: $localize`Transactions · NeoBank`,
+    title: $localize`:@@title.transactions:Transactions · NeoBank`,
     canActivate: [authGuard],
     loadComponent: () =>
       import('./features/history/history').then((m) => m.History),
@@ -111,7 +111,7 @@ export const appRoutes: Route[] = [
   },
   {
     path: '**',
-    title: $localize`Page not found · NeoBank`,
+    title: $localize`:@@title.pageNotFound:Page not found · NeoBank`,
     loadComponent: () =>
       import('./features/not-found/not-found').then((m) => m.NotFound),
   },
