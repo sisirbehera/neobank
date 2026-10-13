@@ -52,7 +52,7 @@ Codes come from any authenticator app (TOTP, RFC 6238, implemented with Node's `
 
 ## In the browser
 
-- **Idle logout:** after 10 minutes without a click, key press, scroll or touch, the app signs out and says why. A warning with a countdown and a "Stay signed in" button appears in the last minute. The last-activity time is shared through `localStorage` (`nb_last_active`, a timestamp), so activity in any tab keeps all tabs signed in: they share one session. This is a convenience on the client; the server's own limits (15-minute access token, 7-day refresh token) still apply.
+- **Idle logout:** after 5 minutes without a click, key press, scroll or touch, the app signs out and says why. A warning with a countdown and a "Stay signed in" button appears in the last minute. The last-activity time is shared through `localStorage` (`nb_last_active`, a timestamp), so activity in any tab keeps all tabs signed in: they share one session. This is a convenience on the client; the server's own limits (15-minute access token, 7-day refresh token) still apply.
 - **Toasts** (`ToastService`, rendered by `<nb-toasts>` in the shell): short messages about something that already happened, such as a deposit, a new account, a device signed out, or being logged out. They hide after 5 seconds, but not while hovered or focused; errors stay until closed; at most 3 show at once. Errors are announced at once by screen readers, the rest politely. Form errors and results the user must act on stay as alerts next to the form.
 - **404 page:** unknown addresses show "Page not found" with the address and a way back, instead of silently going to the home page.
 

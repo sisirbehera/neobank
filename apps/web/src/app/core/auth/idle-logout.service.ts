@@ -13,7 +13,7 @@ import { ToastService } from '../toast/toast.service';
 import { AuthStore } from './auth.store';
 
 /** Signed out after this long without a click, key press, scroll or touch. */
-export const IDLE_TIMEOUT_MS = 10 * 60_000;
+export const IDLE_TIMEOUT_MS = 5 * 60_000;
 /** A warning with a countdown appears this long before that. */
 export const IDLE_WARNING_MS = 60_000;
 
@@ -24,7 +24,7 @@ const WRITE_EVERY_MS = 5_000;
 const TICK_MS = 1_000;
 
 /**
- * Signs the user out after 10 idle minutes, like a banking app should on a
+ * Signs the user out after 5 idle minutes, like a banking app should on a
  * shared or unattended computer.
  *
  * The last-activity time is kept in localStorage (a timestamp, nothing
@@ -120,7 +120,7 @@ export class IdleLogoutService {
     await this.auth.logout();
     await this.router.navigateByUrl('/login');
     this.toasts.info(
-      'You were signed out after 10 minutes without activity. Please log in again.',
+      'You were signed out after 5 minutes without activity. Please log in again.',
     );
   }
 }

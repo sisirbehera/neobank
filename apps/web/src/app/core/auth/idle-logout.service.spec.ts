@@ -53,7 +53,7 @@ describe('IdleLogoutService', () => {
     expect(idle.secondsLeft()).toBe(40);
   });
 
-  it('signs out after 10 idle minutes and says why', async () => {
+  it('signs out after 5 idle minutes and says why', async () => {
     const navigate = vi
       .spyOn(TestBed.inject(Router), 'navigateByUrl')
       .mockResolvedValue(true);
@@ -64,7 +64,7 @@ describe('IdleLogoutService', () => {
     expect(auth.isAuthenticated()).toBe(false);
     await vi.waitFor(() =>
       expect(TestBed.inject(ToastService).toasts()[0].text).toContain(
-        '10 minutes without activity',
+        '5 minutes without activity',
       ),
     );
   });

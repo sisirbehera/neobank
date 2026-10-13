@@ -24,14 +24,14 @@ test('an unknown address shows a 404 page instead of going home', async ({
   await expect(page).toHaveURL(/\/$/);
 });
 
-test('idle logout: warns after 9 minutes, "stay" keeps you in, 10 minutes signs you out', async ({
+test('idle logout: warns after 4 minutes, "stay" keeps you in, 5 minutes signs you out', async ({
   page,
 }) => {
   // The page's clock is controlled by the test, so no real waiting.
   await page.clock.install();
   await register(page, 'Idle Ida', `idle-${Date.now()}@example.com`);
 
-  await page.clock.fastForward('09:01');
+  await page.clock.fastForward('04:01');
   const warning = page.getByRole('alertdialog', {
     name: 'Are you still there?',
   });
@@ -43,10 +43,10 @@ test('idle logout: warns after 9 minutes, "stay" keeps you in, 10 minutes signs 
   await page.getByRole('button', { name: 'Stay signed in' }).click();
   await expect(warning).toBeHidden();
 
-  await page.clock.fastForward('10:01');
+  await page.clock.fastForward('05:01');
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.getByTestId('toast')).toContainText(
-    'signed out after 10 minutes without activity',
+    'signed out after 5 minutes without activity',
   );
 });
 

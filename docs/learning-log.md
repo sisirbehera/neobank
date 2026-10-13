@@ -136,7 +136,7 @@ Live since 2026-10-09 at https://neobank-sisir.onrender.com.
 - **An activity log is not an audit log.** The admin audit log records what staff changed, for the bank. Security activity is the customer's own history, written for them: "was that sign-in me?". It records new sign-ins only, not every token refresh, or the list would be noise. Rows expire after 90 days through a TTL index, the same mechanism that deletes expired refresh tokens.
 - **The shared demo login, again:** a list of failed sign-ins with IP addresses would show every visitor the others' attempts. A demo login sees only its own session's rows. Every new screen that lists "your" data needs that check.
 - **Idle logout across tabs:** all tabs share one sign-in, so a forgotten tab must not sign you out while you work in another. The tabs share a last-activity timestamp in `localStorage`, and each compares the time elapsed instead of counting timer ticks, because browsers slow timers in hidden tabs and laptops sleep.
-- **Testing time without waiting:** Vitest fake timers move the clock in unit tests, and Playwright's `page.clock.fastForward('09:01')` does the same in a real browser. Ten minutes of idling runs in under a second.
+- **Testing time without waiting:** Vitest fake timers move the clock in unit tests, and Playwright's `page.clock.fastForward('04:01')` does the same in a real browser. Five minutes of idling runs in under a second.
 - **Accessible toasts:** two live regions, so errors interrupt a screen reader and the rest wait their turn. A toast doesn't vanish while hovered or focused, and errors stay until closed.
 
 **Bugs**
