@@ -42,7 +42,7 @@ jobs:
       - run: npm audit --omit=dev --audit-level=high
 
       # Sets NX_BASE / NX_HEAD so "affected" only runs what changed.
-      - uses: nrwl/nx-set-shas@v4
+      - uses: nrwl/nx-set-shas@v5
 
       - run: npx nx format:check
       - run: npx nx affected -t lint typecheck test build
