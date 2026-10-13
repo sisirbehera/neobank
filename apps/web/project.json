@@ -28,7 +28,9 @@
         "polyfills": ["@angular/localize/init"],
         "stylePreprocessorOptions": {
           "includePaths": ["libs/web/ui/src/lib/styles"]
-        }
+        },
+        "server": "apps/web/src/main.server.ts",
+        "outputMode": "static"
       },
       "configurations": {
         "production": {

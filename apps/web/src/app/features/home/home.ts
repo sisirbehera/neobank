@@ -18,8 +18,16 @@ import { SystemStatusStore } from '../../core/system/system-status.store';
         @if (auth.isAuthenticated()) {
           <a nbButton routerLink="/dashboard">Go to dashboard</a>
         } @else {
-          <a nbButton routerLink="/register">Open an account</a>
-          <a nbButton variant="outline-primary" routerLink="/login">Log in</a>
+          <a nbButton class="nb-guest-only" routerLink="/register"
+            >Open an account</a
+          >
+          <a
+            nbButton
+            class="nb-guest-only"
+            variant="outline-primary"
+            routerLink="/login"
+            >Log in</a
+          >
         }
       </div>
     </header>

@@ -145,3 +145,24 @@ Live since 2026-10-09 at https://neobank-sisir.onrender.com.
 2. **A spied router still navigates.** `vi.spyOn(router, 'navigateByUrl')` calls the real method, which failed on a route the test router doesn't have. **Fix:** `.mockResolvedValue(true)`. **Lesson:** a spy watches, a mock replaces; pick the one you mean.
 3. **The 404 page could show the previous address.** `Router.url` can still hold the old URL while the new page is being created. **Fix:** read the unknown path from the matched route's own segments (`ActivatedRoute.snapshot.url`).
 4. **An empty `role="alert"` broke an unrelated test.** The toast area is a permanent live region (screen readers only announce changes to a region they already know), and giving it `role="alert"` meant every page now had an extra, empty alert. A login test looking for "the alert" found two. **Fix:** `aria-live` on the regions, no role. **Lesson:** landmarks and roles are an API that both screen readers and tests rely on, so add them on purpose.
+
+## Day 9: rendering where it helps
+
+**Built:** home, log in and register pre-built at build time and hydrated in the browser; signed-in pages still rendered in the browser; the API serving each address its file and allowing the pages' inline scripts by hash ([0012](decisions/0012-prerender-public-pages.md)).
+
+**Concepts**
+
+- **Render modes are chosen per route.** _Prerender_ builds HTML once at build time, _Server_ renders on every request, _Client_ renders in the browser. A page that is the same for everyone suits Prerender. A banking page doesn't: the server doesn't know who is asking, and personal data must not end up in cacheable HTML.
+- **Hydration** reuses the server's HTML instead of drawing the page again. Angular attaches its listeners and state to the existing elements. If the browser's first render differs from the HTML (a different `@if` branch, for example), Angular replaces that part.
+- **Event replay** records clicks and typing made before the JavaScript arrives, and replays them once Angular is ready.
+- **Static output needs no server.** With `outputMode: "static"` the build writes plain files: one per pre-built page, plus `index.csr.html` for the rest. The existing Express app serves them.
+- **CSP hashes instead of `'unsafe-inline'`.** A hash allows one exact script. The API computes them from the built pages at startup, so they can't drift from the build.
+- **Code that runs while a page is being built must not touch browser-only APIs.** Session restore, the health check and timers are skipped there (`isPlatformBrowser`, `afterNextRender`).
+
+**Bugs a slow-network test caught**
+
+1. **Text typed before Angular loaded was wiped.** The form is visible early, so people can type into it. When Angular takes over, each form control writes its starting value (empty) into the field. **Fix:** the shared `nbInput` directive reads the field before that happens and puts the text back into the form.
+2. **An early click on "Log in" reloaded the page.** Before Angular has loaded, nothing stops the browser's own form submission (`GET /login?`). Event replay records the click but doesn't prevent the default action. **Fix:** the early script in `index.html` blocks native submits; Angular, which handles every form, gets the replayed submit. **Lesson:** test the gap between "visible" and "working". Holding back `main.js` in Playwright makes it easy to reproduce.
+3. **Signed-in visitors saw "Log in" buttons flash.** Pages are built signed out. **Fix:** the early script reads the `nb_session` hint cookie and hides signed-out buttons until Angular knows the answer.
+4. **Changing the early script broke nothing locally, but would have broken the live site** if the CSP hashes had been fixed in configuration. Computing them at startup, plus a smoke test that checks every inline script against the CSP, closes that gap.
+5. **The browser tests failed for reasons outside the code.** Playwright reused a dev server left running from the night before, which predated the SSR setup. Its API's sign-in rate-limit counter had also filled up across many runs, so registration got `429`. **Lesson:** when tests fail in a way the change can't explain, check what is actually serving the requests.

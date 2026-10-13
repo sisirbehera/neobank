@@ -7,6 +7,46 @@
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <!--
+      Runs before the page is drawn, for pages built ahead of time (the API
+      allows this inline script by its hash in the Content-Security-Policy):
+      1. Applies the saved theme, so a dark page doesn't flash light first.
+         Mirrors ThemeService (libs/web/ui/src/lib/theme): keep them in step.
+      2. Hides the "Log in" buttons while a session probably exists (the
+         nb_session hint cookie): pages are built signed out, so a signed-in
+         visitor would otherwise see them flash. The app shows them again
+         once it knows (App component).
+      3. Stops the browser from submitting forms itself. Before Angular has
+         loaded, clicking "Log in" would reload the page and lose what was
+         typed. Angular handles every form; event replay hands it the early
+         submit once it has loaded.
+    -->
+    <script>
+      (function () {
+        var t = 'light';
+        try {
+          t = localStorage.getItem('nb-theme');
+          if (t !== 'light' && t !== 'dark' && t !== 'emerald') {
+            t = matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
+          }
+        } catch (e) {}
+        var root = document.documentElement;
+        root.setAttribute('data-nb-theme', t);
+        root.setAttribute('data-bs-theme', t === 'dark' ? 'dark' : 'light');
+        if (/(^|; )nb_session=/.test(document.cookie)) {
+          root.setAttribute('data-nb-session', '');
+        }
+        document.addEventListener(
+          'submit',
+          function (e) {
+            e.preventDefault();
+          },
+          true,
+        );
+      })();
+    </script>
   </head>
   <body>
     <nb-root></nb-root>

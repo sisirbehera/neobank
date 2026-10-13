@@ -7,6 +7,8 @@
 // Read-only except for one demo login. Waits up to 2 minutes for a sleeping
 // free-tier service to wake up. Exits 1 if any check fails.
 
+import { createHash } from 'node:crypto';
+
 const base = (process.argv[2] ?? 'http://localhost:3333').replace(/\/$/, '');
 const https = base.startsWith('https://');
 let failures = 0;
@@ -53,9 +55,37 @@ check(
   page.headers.get('cache-control') === 'no-cache',
 );
 const csp = page.headers.get('content-security-policy') ?? '';
+const scriptSrc = /script-src ([^;]+)/.exec(csp)?.[1] ?? '';
 check(
-  'Content-Security-Policy blocks inline scripts',
-  csp.includes("script-src 'self'"),
+  'Content-Security-Policy blocks unknown inline scripts',
+  scriptSrc.includes("'self'") && !scriptSrc.includes("'unsafe-inline'"),
+);
+// Each inline script the page needs (theme, event replay) must be allowed by
+// its hash, or the browser silently refuses to run it.
+const inline = [
+  ...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi),
+].filter(([, attrs]) => !/\bsrc\s*=|application\/json/i.test(attrs));
+const missing = inline.filter(
+  ([, , body]) =>
+    !scriptSrc.includes(
+      `'sha256-${createHash('sha256').update(body).digest('base64')}'`,
+    ),
+);
+check(
+  "The page's inline scripts are allowed by hash",
+  inline.length > 0 && missing.length === 0,
+  `${inline.length} inline, ${missing.length} not allowed`,
+);
+
+const login = await (await fetch(`${base}/login`)).text();
+check(
+  'GET /login is built ahead of time (content without JavaScript)',
+  login.includes('Log in to NeoBank'),
+);
+const dashboard = await (await fetch(`${base}/dashboard`)).text();
+check(
+  'GET /dashboard is the browser-rendered shell',
+  dashboard.includes('<nb-root') && !dashboard.includes('Log in to NeoBank'),
 );
 check(
   'X-Content-Type-Options: nosniff',

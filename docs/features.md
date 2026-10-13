@@ -141,7 +141,7 @@ Measured on the production build with Lighthouse (simulated mid-range phone on s
 | Home   | 83          | 100           | 100            | 100 |
 | Log in | 84          | 100           | 100            | 100 |
 
-Startup download: **629 KB raw / 136 KB gzipped** (down from 1.10 MB / 222 KB). What made the difference:
+Startup download: **629 KB raw / 136 KB gzipped** after Day 7 (down from 1.10 MB / 222 KB). Day 8 added toasts and idle logout to the shell (139 KB), and Day 9 hydration and event replay (**149 KB**). What made the difference on Day 7:
 
 - **`zod/mini` for the shared schemas.** Same rules, written as functions, so bundlers keep only what is used. Zod went from ~450 KB to ~25 KB in the browser. The API keeps full `zod`, and both share Zod's core.
 - **`@neobank/web/ui/theme` secondary entry point.** The app shell no longer pulls the whole UI library (forms, chart) into the first download.
@@ -152,6 +152,16 @@ Startup download: **629 KB raw / 136 KB gzipped** (down from 1.10 MB / 222 KB). 
   - Hashed bundles are cached for a year (`immutable`); `index.html` uses `no-cache`, so a deploy is picked up immediately.
   - API responses use `no-store`, so account data never sits in a cache.
 - **Preloading:** after the first page renders, the other pages (1–4 KB each) are preloaded.
+
+### Pre-built pages (Day 9)
+
+Home, log in and register are rendered to HTML at build time, so they appear before any JavaScript runs, even with JavaScript off. Signed-in pages are rendered in the browser. Details and trade-offs: [0012](decisions/0012-prerender-public-pages.md).
+
+| Address               | File the API sends                        |
+| --------------------- | ----------------------------------------- |
+| `/`                   | `index.html` (pre-built home page)        |
+| `/login`, `/register` | `login/index.html`, `register/index.html` |
+| anything else         | `index.csr.html` (empty shell)            |
 
 ## API docs
 

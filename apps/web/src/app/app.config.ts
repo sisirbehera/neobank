@@ -10,6 +10,10 @@ import {
   withInterceptors,
 } from '@angular/common/http';
 import {
+  provideClientHydration,
+  withEventReplay,
+} from '@angular/platform-browser';
+import {
   PreloadAllModules,
   provideRouter,
   withComponentInputBinding,
@@ -23,6 +27,9 @@ import { stepUpInterceptor } from './core/security/step-up.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
+    // Pre-built pages: reuse their HTML instead of re-drawing it, and replay
+    // clicks made before the JavaScript arrived.
+    provideClientHydration(withEventReplay()),
     provideBrowserGlobalErrorListeners(),
     // After the first page renders, quietly download the other pages so
     // navigating feels instant (they are small: 1–4 KB each, gzipped).

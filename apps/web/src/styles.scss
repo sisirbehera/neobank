@@ -14,3 +14,9 @@ body {
 .nb-page {
   padding-block: 2rem;
 }
+
+// Signed-out buttons, hidden while a session probably exists (see index.html).
+// visibility, not display: the layout doesn't jump when they reappear.
+[data-nb-session] .nb-guest-only {
+  visibility: hidden;
+}

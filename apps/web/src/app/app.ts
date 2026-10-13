@@ -1,4 +1,5 @@
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -54,10 +55,12 @@ import { Toasts } from './core/toast/toasts';
               Log out
             </button>
           } @else {
-            <a class="btn btn-sm btn-outline-light" routerLink="/login"
+            <a
+              class="btn btn-sm btn-outline-light nb-guest-only"
+              routerLink="/login"
               >Log in</a
             >
-            <a class="btn btn-sm btn-light" routerLink="/register"
+            <a class="btn btn-sm btn-light nb-guest-only" routerLink="/register"
               >Open account</a
             >
           }
@@ -86,6 +89,11 @@ export class App {
   constructor() {
     // Starts watching for inactivity whenever someone is signed in.
     inject(IdleLogoutService);
+    // The session is known now: show signed-out buttons again if they apply
+    // (index.html hid them while a session was likely).
+    afterNextRender(() =>
+      document.documentElement.removeAttribute('data-nb-session'),
+    );
   }
 
   protected readonly links = computed(() => [

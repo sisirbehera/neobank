@@ -1,4 +1,5 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import request from 'supertest';
@@ -75,5 +76,62 @@ describe('serving the Angular app', () => {
   it('never lets API responses be cached', async () => {
     const res = await request(app).get('/api/health');
     expect(res.headers['cache-control']).toBe('no-store');
+  });
+});
+
+describe('serving pages built ahead of time', () => {
+  const themeScript = "document.documentElement.dataset.nbTheme='dark';";
+  const dir = mkdtempSync(join(tmpdir(), 'neobank-ssg-'));
+  writeFileSync(
+    join(dir, 'index.html'),
+    `<!doctype html><script>${themeScript}</script><h1>Welcome</h1>`,
+  );
+  writeFileSync(
+    join(dir, 'index.csr.html'),
+    `<!doctype html><script>${themeScript}</script><nb-root></nb-root>`,
+  );
+  mkdirSync(join(dir, 'login'));
+  writeFileSync(
+    join(dir, 'login', 'index.html'),
+    '<!doctype html><script>window.__jsaction_bootstrap()</script>' +
+      '<script id="ng-state" type="application/json">{}</script>' +
+      '<h1>Log in</h1>',
+  );
+  const app = createApp({ ...testConfig(), staticDir: dir });
+
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+
+  it('serves the built page for its address, with or without a slash', async () => {
+    expect((await request(app).get('/')).text).toContain('Welcome');
+    expect((await request(app).get('/login')).text).toContain('Log in');
+    expect((await request(app).get('/login/')).text).toContain('Log in');
+  });
+
+  it('serves the browser-rendered shell for every other address', async () => {
+    const res = await request(app).get('/dashboard');
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('<nb-root></nb-root>');
+    expect(res.headers['cache-control']).toBe('no-cache');
+  });
+
+  it("allows exactly the pages' inline scripts in the CSP", async () => {
+    const csp = (await request(app).get('/')).headers[
+      'content-security-policy'
+    ];
+    const hash = (js: string) =>
+      `'sha256-${createHash('sha256').update(js).digest('base64')}'`;
+    const scriptSrc = /script-src ([^;]+)/.exec(csp)?.[1].split(' ');
+
+    expect(scriptSrc).toEqual(
+      expect.arrayContaining([
+        "'self'",
+        hash(themeScript),
+        hash('window.__jsaction_bootstrap()'),
+      ]),
+    );
+    // The theme script is in two pages but listed once; JSON isn't a script.
+    expect(scriptSrc).toHaveLength(3);
+    expect(scriptSrc).not.toContain("'unsafe-inline'");
   });
 });
