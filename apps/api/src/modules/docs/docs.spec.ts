@@ -13,7 +13,7 @@ describe('API docs', () => {
     expect(res.body.openapi).toBe('3.1.0');
     const paths = new Set(DOCUMENTED_OPERATIONS.map((o) => o.path));
     expect(Object.keys(res.body.paths)).toHaveLength(paths.size);
-    expect(DOCUMENTED_OPERATIONS).toHaveLength(40);
+    expect(DOCUMENTED_OPERATIONS).toHaveLength(41);
 
     // Spot-check that real validation rules made it into the docs.
     const register =

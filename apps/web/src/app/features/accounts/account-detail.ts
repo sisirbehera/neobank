@@ -8,6 +8,7 @@ import {
   input,
   signal,
   untracked,
+  LOCALE_ID,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
@@ -23,7 +24,7 @@ import { AccountsStore } from '../../core/accounts/accounts.store';
 import { toApiError } from '../../core/http/api-error';
 import { ToastService } from '../../core/toast/toast.service';
 import { ActivityList } from './activity-list';
-import { ACCOUNT_TYPE_LABELS } from './labels';
+import { ACCOUNT_STATUS_LABELS, ACCOUNT_TYPE_LABELS } from './labels';
 import { type MoneyAction, MoneyDialog } from './money-dialog';
 
 @Component({
@@ -40,7 +41,7 @@ import { type MoneyAction, MoneyDialog } from './money-dialog';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <nav class="mb-3 small">
-      <a routerLink="/dashboard">← Dashboard</a>
+      <a routerLink="/dashboard" i18n>← Dashboard</a>
     </nav>
 
     @if (account(); as account) {
@@ -65,15 +66,15 @@ import { type MoneyAction, MoneyDialog } from './money-dialog';
                 class="btn btn-link btn-sm p-0"
                 (click)="copy(account.accountNumber)"
               >
-                {{ copied() ? 'Copied' : 'Copy' }}
+                {{ copied() ? copiedText : copyText }}
               </button>
               @if (account.status !== 'ACTIVE') {
                 <span class="badge text-bg-warning text-capitalize">{{
-                  account.status.toLowerCase()
+                  statusLabels[account.status]
                 }}</span>
               }
             </div>
-            <div class="small text-body-secondary mt-1">
+            <div class="small text-body-secondary mt-1" i18n>
               Opened {{ account.createdAt | date: 'mediumDate' }}
             </div>
           </div>
@@ -84,6 +85,7 @@ import { type MoneyAction, MoneyDialog } from './money-dialog';
               variant="success"
               [disabled]="account.status !== 'ACTIVE'"
               (click)="openDialog('deposit')"
+              i18n
             >
               Add money
             </button>
@@ -92,6 +94,7 @@ import { type MoneyAction, MoneyDialog } from './money-dialog';
               variant="outline-primary"
               [disabled]="account.status !== 'ACTIVE' || account.balance === 0"
               (click)="openDialog('withdraw')"
+              i18n
             >
               Withdraw
             </button>
@@ -101,6 +104,7 @@ import { type MoneyAction, MoneyDialog } from './money-dialog';
                 variant="outline-primary"
                 routerLink="/transfer"
                 [queryParams]="{ from: account.id }"
+                i18n
                 >Transfer</a
               >
             }
@@ -108,7 +112,7 @@ import { type MoneyAction, MoneyDialog } from './money-dialog';
         </div>
       </section>
 
-      <nb-card title="Recent activity">
+      <nb-card title="Recent activity" i18n-title>
         <a
           cardActions
           class="small"
@@ -122,17 +126,18 @@ import { type MoneyAction, MoneyDialog } from './money-dialog';
           <nb-activity-list
             [entries]="activity()"
             emptyText="No transactions yet. Add money to get started."
+            i18n-emptyText
           />
         }
       </nb-card>
     } @else if (store.loaded()) {
-      <div class="alert alert-warning">
+      <div class="alert alert-warning" i18n>
         Account not found. <a routerLink="/dashboard">Back to dashboard</a>
       </div>
     } @else if (store.error(); as error) {
       <div class="alert alert-danger">{{ error }}</div>
     } @else {
-      <p class="text-body-secondary">Loading…</p>
+      <p class="text-body-secondary" i18n>Loading…</p>
     }
   `,
 })
@@ -144,6 +149,10 @@ export class AccountDetail {
   private readonly api = inject(AccountsApi);
   private readonly modal = inject(NgbModal);
   private readonly toasts = inject(ToastService);
+  private readonly locale = inject(LOCALE_ID);
+  protected readonly statusLabels = ACCOUNT_STATUS_LABELS;
+  protected readonly copyText = $localize`Copy`;
+  protected readonly copiedText = $localize`Copied`;
 
   protected readonly typeLabels = ACCOUNT_TYPE_LABELS;
   protected readonly account = computed(
@@ -176,7 +185,9 @@ export class AccountDetail {
         [result.entry, ...entries].slice(0, 20),
       );
       this.toasts.success(
-        `${action === 'deposit' ? 'Deposited' : 'Withdrew'} ${formatInr(result.entry.amount)}`,
+        action === 'deposit'
+          ? $localize`Deposited ${formatInr(result.entry.amount, this.locale)}:amount:`
+          : $localize`Withdrew ${formatInr(result.entry.amount, this.locale)}:amount:`,
       );
     } catch {
       // Dialog dismissed: nothing to do.

@@ -36,6 +36,15 @@
               ".js": ".js"
             }
           }
+        },
+        "e2e": {
+          "outputPath": "dist/e2e/api",
+          "esbuildOptions": {
+            "sourcemap": false,
+            "outExtension": {
+              ".js": ".js"
+            }
+          }
         }
       }
     },

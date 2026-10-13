@@ -135,3 +135,67 @@ describe('serving pages built ahead of time', () => {
     expect(scriptSrc).not.toContain("'unsafe-inline'");
   });
 });
+
+describe('serving the app in several languages', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'neobank-i18n-'));
+  for (const language of ['en', 'hi']) {
+    mkdirSync(join(dir, language, 'login'), { recursive: true });
+    writeFileSync(
+      join(dir, language, 'index.html'),
+      `<h1>home ${language}</h1>`,
+    );
+    writeFileSync(
+      join(dir, language, 'index.csr.html'),
+      `<p>shell ${language}</p>`,
+    );
+    writeFileSync(
+      join(dir, language, 'login', 'index.html'),
+      `<h1>login ${language}</h1>`,
+    );
+  }
+  const app = createApp({ ...testConfig(), staticDir: dir });
+
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+
+  it('serves each language its own pages and shell', async () => {
+    expect((await request(app).get('/en/login')).text).toBe(
+      '<h1>login en</h1>',
+    );
+    expect((await request(app).get('/hi/login')).text).toBe(
+      '<h1>login hi</h1>',
+    );
+    expect((await request(app).get('/hi/')).text).toBe('<h1>home hi</h1>');
+    expect((await request(app).get('/hi/dashboard')).text).toBe(
+      '<p>shell hi</p>',
+    );
+  });
+
+  it('sends an address without a language to English by default', async () => {
+    const res = await request(app).get('/login?returnUrl=%2Fdashboard');
+
+    expect(res.status).toBe(302);
+    expect(res.headers['location']).toBe('/en/login?returnUrl=%2Fdashboard');
+    expect(res.headers['vary']).toContain('Accept-Language');
+    expect(res.headers['cache-control']).toBe('no-store');
+  });
+
+  it("follows the browser's languages, by preference", async () => {
+    const to = async (acceptLanguage: string) =>
+      (await request(app).get('/').set('Accept-Language', acceptLanguage))
+        .headers['location'];
+
+    expect(await to('hi-IN,hi;q=0.9,en;q=0.8')).toBe('/hi/');
+    expect(await to('en-GB,en;q=0.9,hi;q=0.8')).toBe('/en/');
+    expect(await to('fr;q=1,hi;q=0.5')).toBe('/hi/');
+    expect(await to('fr,de')).toBe('/en/');
+  });
+
+  it('prefers the language the visitor chose (cookie)', async () => {
+    const res = await request(app)
+      .get('/')
+      .set('Accept-Language', 'en')
+      .set('Cookie', 'nb_lang=hi');
+
+    expect(res.headers['location']).toBe('/hi/');
+  });
+});

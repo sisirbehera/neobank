@@ -41,6 +41,8 @@ export async function consumeDailyLimit(
         422,
         'DAILY_LIMIT_EXCEEDED',
         `This would exceed your daily limit of ${formatInr(limit)} for transfers to others`,
+        undefined,
+        { limitPaise: String(limit) },
       );
     }
     throw err;

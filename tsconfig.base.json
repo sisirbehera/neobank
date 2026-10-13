@@ -17,6 +17,7 @@
       "@neobank/shared/models": ["./libs/shared/models/src/index.ts"],
       "@neobank/shared/utils": ["./libs/shared/utils/src/index.ts"],
       "@neobank/web/ui": ["./libs/web/ui/src/index.ts"],
+      "@neobank/web/ui/messages": ["./libs/web/ui/src/messages.ts"],
       "@neobank/web/ui/theme": ["./libs/web/ui/src/theme.ts"]
     }
   },

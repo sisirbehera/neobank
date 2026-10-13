@@ -24,8 +24,15 @@ import { TRANSACTION_TYPE_LABELS } from './labels';
               </div>
               @if (entry.counterparty) {
                 <div class="small text-truncate">
-                  {{ entry.direction === 'DEBIT' ? 'To' : 'From' }}
-                  {{ entry.counterparty }}
+                  @if (entry.direction === 'DEBIT') {
+                    <ng-container i18n
+                      >To {{ entry.counterparty }}</ng-container
+                    >
+                  } @else {
+                    <ng-container i18n
+                      >From {{ entry.counterparty }}</ng-container
+                    >
+                  }
                 </div>
               }
               <small class="text-body-secondary">
@@ -44,7 +51,7 @@ import { TRANSACTION_TYPE_LABELS } from './labels';
                 "
                 signed
               />
-              <div class="small text-body-secondary">
+              <div class="small text-body-secondary" i18n="Balance after">
                 Bal {{ entry.balanceAfter | inr }}
               </div>
             </div>
@@ -58,7 +65,7 @@ export class ActivityList {
   readonly entries = input.required<LedgerEntryDto[]>();
   /** Optional id → account map, to show which account each entry belongs to. */
   readonly accounts = input<Record<string, AccountDto>>();
-  readonly emptyText = input('No transactions yet.');
+  readonly emptyText = input($localize`No transactions yet.`);
 
   protected readonly labels = TRANSACTION_TYPE_LABELS;
 }

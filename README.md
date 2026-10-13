@@ -61,6 +61,8 @@ Priya has 6 months of history (salary, rent share, bills, transfers with Ravi). 
 | `npm run e2e`   | Playwright tests (starts the servers) |
 | `npm run graph` | Interactive project dependency graph  |
 
+The dev server serves one language at `/` (English); `npx nx serve web --configuration=hi` serves Hindi. The production build has both, under `/en/` and `/hi/`. To change any text, see [Changing text and translations](docs/runbook.md#changing-text-and-translations).
+
 ## Conventions
 
 - **Money is integer paise.** `₹1,050.00` is stored as `105000`. Display it with `<nb-amount>` or the `inr` pipe.
@@ -115,7 +117,7 @@ Dependabot (`.github/dependabot.yml`) opens weekly update PRs. Angular, Nx and V
 
 - [x] Day 8 – Polish: protect the shared demo login · 404 page instead of the silent redirect · toasts · idle logout with a warning · security activity (sign-ins, failed logins, 2FA and password changes) on the Security page, showing a demo user only their own session's events
 - [x] Day 9 – Rendering where it helps: `@angular/ssr` with per-route render modes · public pages (home, log in, register, 404) prerendered at build time, signed-in pages rendered in the browser · hydration with event replay · startup session refresh and timers skipped on the server · theme applied before first paint (no flash) · the API keeps serving plain files, so no Node rendering server on the free plan (decision record)
-- [ ] Day 10 – Languages: Angular's built-in `@angular/localize`, English and Hindi · the language in the URL (`/en/dashboard`, `/hi/dashboard`) · the switcher keeps the current page · `/` picks the saved choice, then the browser language, then English · choice saved on the profile · amounts and dates formatted per locale · API errors sent as codes and translated in the browser (decision record)
+- [x] Day 10 – Languages: Angular's built-in `@angular/localize`, English and Hindi · the language in the URL (`/en/dashboard`, `/hi/dashboard`) · the switcher keeps the current page · `/` picks the saved choice, then the browser language, then English · choice saved on the profile · amounts and dates formatted per locale · API errors sent as codes and translated in the browser (decision record)
 - [ ] Day 11 – Notifications: in-app inbox with an unread badge, fetched on page load and tab focus (no websockets) · events: money received, sign-in from a new device, security changes · stored as type + values and worded in the reader's language · new ones shown as toasts
 - [ ] Day 12 – End-to-end demo: Playwright for the language switch, a page loaded with JavaScript off, and a transfer that notifies the receiver · smoke test covers both languages · Lighthouse before and after · demo script, decision records, learning log
 

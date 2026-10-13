@@ -13,7 +13,7 @@ import { Button } from '@neobank/web/ui';
   imports: [Button],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="alert alert-warning small">
+    <div class="alert alert-warning small" i18n>
       <strong>Save these backup codes now.</strong> Each one works once if you
       lose your phone. They won't be shown again.
     </div>
@@ -38,6 +38,7 @@ import { Button } from '@neobank/web/ui';
         size="sm"
         variant="outline-secondary"
         (click)="download()"
+        i18n
       >
         Download .txt
       </button>
@@ -51,11 +52,11 @@ import { Button } from '@neobank/web/ui';
         [checked]="saved()"
         (change)="saved.set(!saved())"
       />
-      <label class="form-check-label" for="savedCodes">
+      <label class="form-check-label" for="savedCodes" i18n>
         I have saved my backup codes
       </label>
     </div>
-    <button nbButton [disabled]="!saved()" (click)="done.emit()">
+    <button nbButton [disabled]="!saved()" (click)="done.emit()" i18n>
       Continue
     </button>
   `,
@@ -77,7 +78,8 @@ export class BackupCodesPanel {
   }
 
   download(): void {
-    const text = `NeoBank backup codes (each works once)\n\n${this.codes().join('\n')}\n`;
+    const title = $localize`NeoBank backup codes (each works once)`;
+    const text = `${title}\n\n${this.codes().join('\n')}\n`;
     const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
     const link = document.createElement('a');
     link.href = url;

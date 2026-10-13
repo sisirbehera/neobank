@@ -10,7 +10,7 @@ flowchart LR
   subgraph R["Render: one Docker container (Node 24)"]
     E["Express 5"]
     E -- "/api/*" --> API["REST API<br/>modules: auth, accounts,<br/>transfers, history, admin…"]
-    E -- "everything else" --> S["Built Angular files<br/>pre-built pages + index.csr.html shell"]
+    E -- "everything else" --> S["Built Angular files, one copy per language<br/>/en/ and /hi/: pre-built pages + index.csr.html shell"]
   end
   API -- "TLS, Mongoose" --> M[("MongoDB Atlas M0<br/>3-node replica set")]
   GH["GitHub Actions"] -. "push: CI + Docker smoke test<br/>Mondays: keep-alive smoke test" .-> R
@@ -18,6 +18,7 @@ flowchart LR
 
 - **One service, one URL.** Express serves both the API and the Angular app. Because they share an origin, there is no CORS, and the refresh cookie can be `SameSite=Strict`.
 - **Pre-built public pages, browser-rendered private ones** ([0012](decisions/0012-prerender-public-pages.md)). Home, log in and register are rendered to HTML at build time and hydrated in the browser. Signed-in pages start from an empty shell. Express picks the file for each address; no Node rendering server runs.
+- **One build per language** ([0013](decisions/0013-built-in-i18n-per-language-builds.md)). English under `/en/`, Hindi under `/hi/`, each complete with its own pre-built pages. Addresses without a language redirect to the visitor's language. The API's messages stay English; the browser words errors in its language from their codes.
 - **A replica set everywhere.** Atlas is one, and in development the API starts an in-memory replica set (`mongodb-memory-server`) when `MONGODB_URI` is empty. Money movement relies on multi-document transactions, which need a replica set.
 - **Render** builds the `Dockerfile` on every push to `main` and restarts the container if `/api/health` stops answering. Free services sleep after 15 minutes idle.
 
@@ -59,6 +60,7 @@ Routes only translate HTTP to service calls. Services hold the rules and are wha
 | `core/http/`           | Interceptors: attach the access token, refresh once on `401`, map errors                                                 |
 | `core/security/`       | The step-up interceptor and its lazy-loaded "Confirm it's you" dialog                                                    |
 | `core/toast/`          | `ToastService` and the `<nb-toasts>` host in the shell                                                                   |
+| `core/i18n/`           | The language switcher and service, and translations of validation messages and API error codes                           |
 | `app.routes.server.ts` | Render mode per route: pre-built at build time or rendered in the browser                                                |
 | `features/<feature>/`  | Pages (smart components that inject stores) and their presentational pieces                                              |
 

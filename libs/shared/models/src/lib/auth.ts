@@ -1,4 +1,5 @@
 import * as z from 'zod/mini';
+import { LanguageSchema } from './i18n';
 
 export const UserRoleSchema = z.enum(['customer', 'admin']);
 export type UserRole = z.infer<typeof UserRoleSchema>;
@@ -33,6 +34,8 @@ export const RegisterRequestSchema = z.object({
   name: NameSchema,
   email: EmailSchema,
   password: NewPasswordSchema,
+  /** The language of the page they registered on. */
+  language: z.optional(LanguageSchema),
 });
 export type RegisterRequest = z.infer<typeof RegisterRequestSchema>;
 
@@ -56,6 +59,11 @@ export const UserDtoSchema = z.object({
   mfaEnabled: z.boolean(),
   /** The shared demo login: its password, 2FA and other sessions can't be changed. */
   demo: z.boolean(),
+  /**
+   * Language the user chose (switcher, or the page they registered on);
+   * follows them to other devices. Absent until they choose one.
+   */
+  language: z.optional(LanguageSchema),
   createdAt: z.iso.datetime(),
 });
 export type UserDto = z.infer<typeof UserDtoSchema>;

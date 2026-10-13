@@ -27,12 +27,13 @@ import {
 } from '@neobank/web/ui';
 import { AuthStore } from '../../core/auth/auth.store';
 import { toApiError } from '../../core/http/api-error';
+import { LanguageService } from '../../core/i18n/language.service';
 
 function matchesPassword(control: AbstractControl): ValidationErrors | null {
   const password = control.parent?.get('password')?.value;
   return control.value === password
     ? null
-    : { mismatch: 'Passwords do not match' };
+    : { mismatch: $localize`Passwords do not match` };
 }
 
 @Component({
@@ -42,13 +43,13 @@ function matchesPassword(control: AbstractControl): ValidationErrors | null {
   template: `
     <div class="row justify-content-center">
       <div class="col-12 col-sm-10 col-md-7 col-lg-5">
-        <nb-card title="Open your NeoBank account">
+        <nb-card title="Open your NeoBank account" i18n-title>
           @if (error(); as error) {
             <div class="alert alert-danger" role="alert">{{ error }}</div>
           }
 
           <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-            <nb-form-field label="Full name">
+            <nb-form-field label="Full name" i18n-label>
               <input
                 nbInput
                 id="name"
@@ -57,7 +58,7 @@ function matchesPassword(control: AbstractControl): ValidationErrors | null {
               />
             </nb-form-field>
 
-            <nb-form-field label="Email">
+            <nb-form-field label="Email" i18n-label>
               <input
                 nbInput
                 id="email"
@@ -69,7 +70,9 @@ function matchesPassword(control: AbstractControl): ValidationErrors | null {
 
             <nb-form-field
               label="Password"
+              i18n-label
               hint="At least 8 characters, with a letter and a number."
+              i18n-hint
             >
               <input
                 nbInput
@@ -80,7 +83,7 @@ function matchesPassword(control: AbstractControl): ValidationErrors | null {
               />
             </nb-form-field>
 
-            <nb-form-field label="Confirm password">
+            <nb-form-field label="Confirm password" i18n-label>
               <input
                 nbInput
                 id="confirmPassword"
@@ -90,12 +93,18 @@ function matchesPassword(control: AbstractControl): ValidationErrors | null {
               />
             </nb-form-field>
 
-            <button nbButton type="submit" class="w-100" [loading]="pending()">
+            <button
+              nbButton
+              type="submit"
+              class="w-100"
+              [loading]="pending()"
+              i18n
+            >
               Create account
             </button>
           </form>
 
-          <p class="mt-3 mb-0 text-center small">
+          <p class="mt-3 mb-0 text-center small" i18n>
             Already have an account? <a routerLink="/login">Log in</a>
           </p>
         </nb-card>
@@ -106,6 +115,8 @@ function matchesPassword(control: AbstractControl): ValidationErrors | null {
 export class Register {
   private readonly store = inject(AuthStore);
   private readonly router = inject(Router);
+  /** Saved on the profile: the language they signed up in. */
+  private readonly language = inject(LanguageService).current;
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
     name: ['', zodValidator(NameSchema)],
@@ -135,7 +146,12 @@ export class Register {
     this.error.set(null);
     try {
       const { name, email, password } = this.form.getRawValue();
-      await this.store.register({ name, email, password });
+      await this.store.register({
+        name,
+        email,
+        password,
+        language: this.language,
+      });
       await this.router.navigateByUrl('/dashboard');
     } catch (err) {
       const apiError = toApiError(err);

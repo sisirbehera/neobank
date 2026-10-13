@@ -7,6 +7,7 @@ import {
   input,
   signal,
   untracked,
+  LOCALE_ID,
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import {
@@ -73,15 +74,20 @@ interface Summary {
       <div class="col-12 col-md-9 col-lg-6">
         @switch (step()) {
           @case ('details') {
-            <nb-card title="Transfer money" subtitle="Step 1 of 2 · Details">
+            <nb-card
+              title="Transfer money"
+              i18n-title
+              subtitle="Step 1 of 2 · Details"
+              i18n-subtitle
+            >
               @if (accounts.loaded() && sources().length === 0) {
-                <div class="alert alert-info mb-0">
+                <div class="alert alert-info mb-0" i18n>
                   You need an active account with money in it first.
                   <a routerLink="/accounts/new">Open an account</a>
                 </div>
               } @else {
                 <form [formGroup]="form" (ngSubmit)="review()" novalidate>
-                  <nb-form-field label="From">
+                  <nb-form-field label="From" i18n-label>
                     <select nbInput id="from" formControlName="fromAccountId">
                       @for (a of sources(); track a.id) {
                         <option [value]="a.id">
@@ -93,11 +99,11 @@ interface Summary {
                     </select>
                   </nb-form-field>
 
-                  <nb-form-field label="To">
+                  <nb-form-field label="To" i18n-label>
                     <select nbInput id="to" formControlName="toAccountNumber">
-                      <option value="" disabled>Choose who to pay</option>
+                      <option value="" disabled i18n>Choose who to pay</option>
                       @if (ownDestinations().length) {
-                        <optgroup label="My accounts">
+                        <optgroup label="My accounts" i18n-label>
                           @for (a of ownDestinations(); track a.id) {
                             <option [value]="a.accountNumber">
                               {{ a.nickname || typeLabels[a.type] }} ·
@@ -107,7 +113,7 @@ interface Summary {
                         </optgroup>
                       }
                       @if (beneficiaries.entities().length) {
-                        <optgroup label="Beneficiaries">
+                        <optgroup label="Beneficiaries" i18n-label>
                           @for (b of beneficiaries.entities(); track b.id) {
                             <option [value]="b.accountNumber">
                               {{ b.name }} ·
@@ -118,18 +124,15 @@ interface Summary {
                       }
                     </select>
                   </nb-form-field>
-                  <p class="small text-body-secondary">
+                  <p class="small text-body-secondary" i18n>
                     Paying someone new?
                     <a routerLink="/beneficiaries">Add a beneficiary</a> first.
                   </p>
 
                   <nb-form-field
                     label="Amount (₹)"
-                    [hint]="
-                      toIsExternal()
-                        ? 'Up to ' + dailyLimit + ' a day to other people.'
-                        : 'Up to ₹1,00,000 per transfer.'
-                    "
+                    i18n-label
+                    [hint]="toIsExternal() ? externalLimitHint : ownLimitHint"
                   >
                     <input
                       nbInput
@@ -141,41 +144,49 @@ interface Summary {
                     />
                   </nb-form-field>
 
-                  <nb-form-field label="Description (optional)">
+                  <nb-form-field label="Description (optional)" i18n-label>
                     <input
                       nbInput
                       id="description"
                       autocomplete="off"
                       placeholder="e.g. Rent for October"
+                      i18n-placeholder
                       formControlName="description"
                     />
                   </nb-form-field>
 
-                  <button nbButton type="submit" class="w-100">Continue</button>
+                  <button nbButton type="submit" class="w-100" i18n>
+                    Continue
+                  </button>
                 </form>
               }
             </nb-card>
           }
 
           @case ('review') {
-            <nb-card title="Review transfer" subtitle="Step 2 of 2 · Confirm">
+            <nb-card
+              title="Review transfer"
+              i18n-title
+              subtitle="Step 2 of 2 · Confirm"
+              i18n-subtitle
+            >
               @if (summary(); as s) {
                 <dl class="row mb-3">
-                  <dt class="col-4">From</dt>
+                  <dt class="col-4" i18n>From</dt>
                   <dd class="col-8">
                     {{ s.from.name }}<br />
                     <small class="font-monospace text-body-secondary">{{
                       s.from.accountNumber | accountNumber
                     }}</small>
                   </dd>
-                  <dt class="col-4">To</dt>
+                  <dt class="col-4" i18n>To</dt>
                   <dd class="col-8">
                     {{ s.to.name }}<br />
                     <small class="font-monospace text-body-secondary">{{
                       s.to.accountNumber | accountNumber
                     }}</small>
                   </dd>
-                  <dt class="col-4">Amount</dt>
+                  <dt class="col-4" i18n>Amount</dt>
                   <dd
                     class="col-8 fs-4 fw-semibold"
                     data-testid="review-amount"
@@ -183,7 +194,7 @@ interface Summary {
                     {{ s.amountPaise | inr }}
                   </dd>
                   @if (s.description) {
-                    <dt class="col-4">Description</dt>
+                    <dt class="col-4" i18n>Description</dt>
                     <dd class="col-8">{{ s.description }}</dd>
                   }
                 </dl>
@@ -199,10 +210,11 @@ interface Summary {
                   variant="outline-secondary"
                   [disabled]="pending()"
                   (click)="step.set('details')"
+                  i18n
                 >
                   Back
                 </button>
-                <button nbButton [loading]="pending()" (click)="confirm()">
+                <button nbButton [loading]="pending()" (click)="confirm()" i18n>
                   Confirm transfer
                 </button>
               </div>
@@ -214,13 +226,13 @@ interface Summary {
               <nb-card>
                 <div class="text-center py-3">
                   <div class="display-6 text-success" aria-hidden="true">✓</div>
-                  <h1 class="h4">Transfer complete</h1>
+                  <h1 class="h4" i18n>Transfer complete</h1>
                   <p class="mb-1">
                     <strong>{{ s.amountPaise | inr }}</strong> sent to
                     {{ s.to.name }}.
                   </p>
                   @if (result(); as r) {
-                    <p class="text-body-secondary small">
+                    <p class="text-body-secondary small" i18n>
                       New balance of {{ s.from.name }}:
                       <strong data-testid="new-balance">{{
                         r.fromAccount.balance | inr
@@ -235,6 +247,7 @@ interface Summary {
                       nbButton
                       variant="outline-primary"
                       (click)="another()"
+                      i18n
                     >
                       Make another transfer
                     </button>
@@ -261,9 +274,12 @@ export class Transfer {
   private readonly api = inject(TransfersApi);
 
   protected readonly typeLabels = ACCOUNT_TYPE_LABELS;
-  protected readonly dailyLimit = formatInr(
+  private readonly locale = inject(LOCALE_ID);
+  protected readonly externalLimitHint = $localize`Up to ${formatInr(
     DAILY_EXTERNAL_TRANSFER_LIMIT_PAISE,
-  );
+    this.locale,
+  )}:limit: a day to other people.`;
+  protected readonly ownLimitHint = $localize`Up to ₹1,00,000 per transfer.`;
 
   protected readonly step = signal<Step>('details');
   protected readonly pending = signal(false);
@@ -281,7 +297,9 @@ export class Transfer {
     ],
     toAccountNumber: [
       '',
-      zodValidator(z.string().check(z.minLength(1, 'Choose who to pay'))),
+      zodValidator(
+        z.string().check(z.minLength(1, $localize`Choose who to pay`)),
+      ),
     ],
     amount: [
       '',
@@ -442,7 +460,9 @@ export class Transfer {
       this.accounts?.entityMap()[this.form?.controls.fromAccountId.value];
     const parsed = RupeeInputSchema.safeParse(control.value);
     return from && parsed.success && parsed.data > from.balance
-      ? { zod: `Insufficient funds (available ${formatInr(from.balance)})` }
+      ? {
+          zod: $localize`Insufficient funds (available ${formatInr(from.balance, this.locale)}:amount:)`,
+        }
       : null;
   }
 }

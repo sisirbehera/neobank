@@ -42,6 +42,7 @@ import {
   TransferRequestSchema,
   TransferResponseSchema,
   UpdateAccountStatusRequestSchema,
+  UpdateProfileRequestSchema,
   UserDtoSchema,
 } from '@neobank/shared/models';
 
@@ -170,6 +171,15 @@ const operations: Operation[] = [
     tag: 'Auth',
     summary: 'The signed-in user',
     auth: 'bearer',
+    response: UserDtoSchema,
+  },
+  {
+    method: 'patch',
+    path: '/auth/me',
+    tag: 'Auth',
+    summary: 'Change profile settings (preferred language)',
+    auth: 'bearer',
+    body: UpdateProfileRequestSchema,
     response: UserDtoSchema,
   },
 

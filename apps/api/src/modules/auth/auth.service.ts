@@ -4,6 +4,7 @@ import type {
   MfaChallenge,
   MfaSetupResponse,
   RegisterRequest,
+  UpdateProfileRequest,
   UserDto,
 } from '@neobank/shared/models';
 import type { AuthConfig } from '../../config/app-config';
@@ -89,6 +90,7 @@ export class AuthService {
         name: input.name,
         email: input.email,
         passwordHash: await hashPassword(input.password),
+        language: input.language,
       });
       return this.issueSession(user, meta);
     } catch (err) {
@@ -237,6 +239,19 @@ export class AuthService {
 
   async getUser(userId: string): Promise<UserDto> {
     const user = await UserModel.findById(userId);
+    if (!user) throw HttpError.unauthorized();
+    return toUserDto(user);
+  }
+
+  async updateProfile(
+    userId: string,
+    changes: UpdateProfileRequest,
+  ): Promise<UserDto> {
+    const user = await UserModel.findByIdAndUpdate(
+      userId,
+      { $set: { language: changes.language } },
+      { returnDocument: 'after' },
+    );
     if (!user) throw HttpError.unauthorized();
     return toUserDto(user);
   }

@@ -5,6 +5,18 @@
   "prefix": "nb",
   "sourceRoot": "apps/web/src",
   "tags": ["scope:web", "type:app"],
+  "i18n": {
+    "sourceLocale": {
+      "code": "en-IN",
+      "subPath": "en"
+    },
+    "locales": {
+      "hi": {
+        "translation": "apps/web/src/locale/messages.hi.json",
+        "subPath": "hi"
+      }
+    }
+  },
   "targets": {
     "build": {
       "executor": "@angular/build:application",
@@ -30,7 +42,9 @@
           "includePaths": ["libs/web/ui/src/lib/styles"]
         },
         "server": "apps/web/src/main.server.ts",
-        "outputMode": "static"
+        "outputMode": "static",
+        "localize": true,
+        "i18nMissingTranslation": "error"
       },
       "configurations": {
         "production": {
@@ -59,7 +73,14 @@
         "development": {
           "optimization": false,
           "extractLicenses": false,
-          "sourceMap": true
+          "sourceMap": true,
+          "localize": false
+        },
+        "development-hi": {
+          "optimization": false,
+          "extractLicenses": false,
+          "sourceMap": true,
+          "localize": ["hi"]
         }
       }
     },
@@ -77,6 +98,9 @@
         },
         "development": {
           "buildTarget": "web:build:development"
+        },
+        "hi": {
+          "buildTarget": "web:build:development-hi"
         }
       },
       "dependsOn": ["api:serve"]
@@ -92,6 +116,14 @@
         "port": 4200,
         "staticFilePath": "dist/apps/web/browser",
         "spa": true
+      }
+    },
+    "extract-i18n": {
+      "executor": "@angular/build:extract-i18n",
+      "options": {
+        "buildTarget": "web:build",
+        "format": "json",
+        "outputPath": "apps/web/src/locale"
       }
     }
   }

@@ -8,6 +8,10 @@ describe('formatInr', () => {
   it('formats zero', () => {
     expect(formatInr(0)).toBe('₹0.00');
   });
+
+  it('formats for Hindi with the same digits and grouping', () => {
+    expect(formatInr(123456789, 'hi')).toBe('₹12,34,567.89');
+  });
 });
 
 describe('rupeesToPaise', () => {
@@ -22,5 +26,11 @@ describe('formatInrCompact', () => {
     expect(formatInrCompact(85_000_00)).toBe('₹85K');
     expect(formatInrCompact(1_20_000_00)).toBe('₹1.2L');
     expect(formatInrCompact(0)).toBe('₹0');
+  });
+
+  it('uses Hindi words in Hindi', () => {
+    // \u00a0 is a non-breaking space: "85" and "हज़ार" never split across lines.
+    expect(formatInrCompact(85_000_00, 'hi')).toBe('₹85\u00a0हज़ार');
+    expect(formatInrCompact(1_20_000_00, 'hi')).toBe('₹1.2\u00a0लाख');
   });
 });

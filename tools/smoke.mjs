@@ -45,15 +45,23 @@ check(
 );
 
 // ---- The web app --------------------------------------------------------------
-const page = await fetch(`${base}/`, {
+// "/" sends visitors to their language: the cookie, then Accept-Language.
+const root = await fetch(`${base}/`, {
+  redirect: 'manual',
+  headers: { 'Accept-Language': 'hi-IN,hi;q=0.9,en;q=0.8' },
+});
+check(
+  'GET / sends a Hindi browser to /hi/',
+  root.status === 302 && root.headers.get('location') === '/hi/',
+  `${root.status} → ${root.headers.get('location')}`,
+);
+
+const page = await fetch(`${base}/en/`, {
   headers: { 'Accept-Encoding': 'gzip, br' },
 });
 const html = await page.text();
-check('GET / serves the Angular app', page.ok && html.includes('<nb-root'));
-check(
-  'index.html is not cached',
-  page.headers.get('cache-control') === 'no-cache',
-);
+check('GET /en/ serves the Angular app', page.ok && html.includes('<nb-root'));
+check('HTML is not cached', page.headers.get('cache-control') === 'no-cache');
 const csp = page.headers.get('content-security-policy') ?? '';
 const scriptSrc = /script-src ([^;]+)/.exec(csp)?.[1] ?? '';
 check(
@@ -77,14 +85,20 @@ check(
   `${inline.length} inline, ${missing.length} not allowed`,
 );
 
-const login = await (await fetch(`${base}/login`)).text();
+const login = await (await fetch(`${base}/en/login`)).text();
 check(
-  'GET /login is built ahead of time (content without JavaScript)',
+  'GET /en/login is built ahead of time (content without JavaScript)',
   login.includes('Log in to NeoBank'),
 );
-const dashboard = await (await fetch(`${base}/dashboard`)).text();
+const hindiLogin = await (await fetch(`${base}/hi/login`)).text();
 check(
-  'GET /dashboard is the browser-rendered shell',
+  'GET /hi/login is the Hindi page',
+  hindiLogin.includes('NeoBank में लॉग इन करें') &&
+    hindiLogin.includes('lang="hi"'),
+);
+const dashboard = await (await fetch(`${base}/en/dashboard`)).text();
+check(
+  'GET /en/dashboard is the browser-rendered shell',
   dashboard.includes('<nb-root') && !dashboard.includes('Log in to NeoBank'),
 );
 check(
@@ -97,7 +111,7 @@ if (https) {
 
 const bundle = html.match(/src="(main-[A-Za-z0-9_-]{8}\.js)"/)?.[1];
 if (bundle) {
-  const js = await fetch(`${base}/${bundle}`, {
+  const js = await fetch(new URL(bundle, page.url), {
     headers: { 'Accept-Encoding': 'gzip, br' },
   });
   check(
@@ -116,8 +130,11 @@ if (bundle) {
 
 const deepLink = await fetch(`${base}/accounts/anything`);
 check(
-  'Deep links fall back to index.html',
-  deepLink.ok && (await deepLink.text()).includes('<nb-root'),
+  'Old links without a language still work',
+  deepLink.ok &&
+    new URL(deepLink.url).pathname === '/en/accounts/anything' &&
+    (await deepLink.text()).includes('<nb-root'),
+  new URL(deepLink.url).pathname,
 );
 
 // ---- The API -----------------------------------------------------------------

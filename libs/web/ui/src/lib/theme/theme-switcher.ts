@@ -13,6 +13,7 @@ import { ThemeService } from './theme.service';
         class="btn btn-sm btn-outline-light"
         ngbDropdownToggle
         aria-label="Change theme"
+        i18n-aria-label
       >
         <span
           class="nb-swatch"

@@ -63,6 +63,17 @@ Render dashboard → the service → **Logs**. Useful lines: `[db] connected`, `
 
 Log in as the admin → **Admin → Reset demo data**. This deletes Priya and Ravi with everything they own (accounts, history, beneficiaries, sessions) and recreates them with fresh history. Other users are untouched. A restart does **not** reset them: seeding skips users that already exist.
 
+### Changing text and translations
+
+The app is built once per language ([0013](decisions/0013-built-in-i18n-per-language-builds.md)), and a missing Hindi translation fails the build. To add or change text:
+
+1. Write the English in the template with an `i18n` attribute (`<p i18n>…</p>`, `label="…" i18n-label`), or in TypeScript with `$localize`.
+2. Run `npx nx run web:extract-i18n`. It rewrites `apps/web/src/locale/messages.json`. Changing an English text gives it a new ID.
+3. Add the Hindi for each new or changed ID to `apps/web/src/locale/messages.hi.json`. Keep placeholders such as `{$INTERPOLATION}` and `{$START_LINK}` exactly as they are.
+4. Run `npx nx build web`. It names every ID that still has no translation.
+
+A new message in a shared Zod schema also needs an entry in `apps/web/src/app/core/i18n/messages.ts`; `validation-messages.spec.ts` fails until it has one. Admin screens are English-only and need none of this.
+
 ## When something goes wrong
 
 ### The "Keep alive" workflow failed (you got an email)

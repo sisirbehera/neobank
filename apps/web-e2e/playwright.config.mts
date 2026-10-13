@@ -4,6 +4,7 @@ import { workspaceRoot } from '@nx/devkit';
 
 // For CI, you may want to set BASE_URL to the deployed application.
 const baseURL = process.env['BASE_URL'] || 'http://localhost:4200';
+const PRODUCTION_URL = 'http://localhost:4300';
 
 /**
  * Read environment variables from file.
@@ -29,23 +30,49 @@ export default defineConfig({
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
   },
-  /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'npx nx run web:serve',
-    // Through the dev-server proxy: 200 only once Angular, the API and the
-    // database are all up (the API starts slower than the dev server).
-    url: 'http://localhost:4200/api/health',
-    timeout: 180_000,
-    reuseExistingServer: true,
-    cwd: workspaceRoot,
-    // Every test logs in from the same IP; don't let the login rate limit
-    // (meant for real users) fail the suite.
-    env: { AUTH_RATE_LIMIT: '1000' },
-  },
+  webServer: [
+    {
+      command: 'npx nx run web:serve',
+      // Through the dev-server proxy: 200 only once Angular, the API and the
+      // database are all up (the API starts slower than the dev server).
+      url: 'http://localhost:4200/api/health',
+      timeout: 180_000,
+      reuseExistingServer: true,
+      cwd: workspaceRoot,
+      // Every test logs in from the same IP; don't let the login rate limit
+      // (meant for real users) fail the suite.
+      env: { AUTH_RATE_LIMIT: '1000' },
+    },
+    // The production build, served by the API the way Render runs it: both
+    // languages under /en/ and /hi/ (the dev server has only one).
+    // The API is built into its own folder (configuration "e2e"): the dev API
+    // runs from apps/api/dist and restarts, losing its in-memory database,
+    // whenever that folder changes.
+    {
+      command:
+        'npx nx build web --configuration=production && npx nx build api --configuration=e2e && node dist/e2e/api/main.js',
+      url: `${PRODUCTION_URL}/api/health`,
+      timeout: 300_000,
+      reuseExistingServer: !process.env['CI'],
+      cwd: workspaceRoot,
+      env: {
+        PORT: '4300',
+        STATIC_DIR: 'dist/apps/web/browser',
+        SEED_DEMO_DATA: 'true',
+        AUTH_RATE_LIMIT: '1000',
+      },
+    },
+  ],
   projects: [
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      testIgnore: /production\//,
+    },
+    {
+      name: 'production',
+      use: { ...devices['Desktop Chrome'], baseURL: PRODUCTION_URL },
+      testMatch: /production\/.*\.spec\.ts/,
     },
 
     // Add 'firefox' / 'webkit' here once `npx playwright install` has them.

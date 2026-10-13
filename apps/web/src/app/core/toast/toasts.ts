@@ -51,6 +51,7 @@ import { ToastService } from './toast.service';
               t.kind === 'success' || t.kind === 'danger'
             "
             aria-label="Close"
+            i18n-aria-label
             (click)="service.dismiss(t.id)"
           ></button>
         </div>

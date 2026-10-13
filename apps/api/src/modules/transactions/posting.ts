@@ -60,9 +60,12 @@ async function explainFailure(
 
   if (!account) return accountNotFound();
   if (account.status !== 'ACTIVE') {
-    return HttpError.conflict(
-      `This account is ${account.status.toLowerCase()}`,
+    return new HttpError(
+      409,
       'ACCOUNT_NOT_ACTIVE',
+      `This account is ${account.status.toLowerCase()}`,
+      undefined,
+      { status: account.status },
     );
   }
   return new HttpError(422, 'INSUFFICIENT_FUNDS', 'Insufficient funds');

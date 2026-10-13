@@ -3,6 +3,7 @@ import {
   Component,
   inject,
   signal,
+  computed,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -37,13 +38,13 @@ const fields = AddBeneficiaryRequestSchema.shape;
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h1 class="h3 mb-4">Beneficiaries</h1>
+    <h1 class="h3 mb-4" i18n>Beneficiaries</h1>
 
     <div class="row g-4">
       <div class="col-12 col-lg-5">
-        <nb-card title="Add a beneficiary">
+        <nb-card title="Add a beneficiary" i18n-title>
           @if (added(); as name) {
-            <div class="alert alert-success" role="status">
+            <div class="alert alert-success" role="status" i18n>
               {{ name }} was added. You can now send them money.
             </div>
           }
@@ -52,7 +53,7 @@ const fields = AddBeneficiaryRequestSchema.shape;
           }
 
           <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-            <nb-form-field label="Name">
+            <nb-form-field label="Name" i18n-label>
               <input
                 nbInput
                 id="beneficiaryName"
@@ -63,7 +64,9 @@ const fields = AddBeneficiaryRequestSchema.shape;
 
             <nb-form-field
               label="Account number"
+              i18n-label
               hint="Their 12-character NeoBank account number, e.g. NB12 3456 7897."
+              i18n-hint
             >
               <input
                 nbInput
@@ -75,7 +78,7 @@ const fields = AddBeneficiaryRequestSchema.shape;
               />
             </nb-form-field>
 
-            <nb-form-field label="Nickname (optional)">
+            <nb-form-field label="Nickname (optional)" i18n-label>
               <input
                 nbInput
                 id="beneficiaryNickname"
@@ -84,7 +87,13 @@ const fields = AddBeneficiaryRequestSchema.shape;
               />
             </nb-form-field>
 
-            <button nbButton type="submit" class="w-100" [loading]="pending()">
+            <button
+              nbButton
+              type="submit"
+              class="w-100"
+              [loading]="pending()"
+              i18n
+            >
               Add beneficiary
             </button>
           </form>
@@ -94,12 +103,13 @@ const fields = AddBeneficiaryRequestSchema.shape;
       <div class="col-12 col-lg-7">
         <nb-card
           title="Your beneficiaries"
-          [subtitle]="store.ids().length + ' of ' + max + ' saved'"
+          i18n-title
+          [subtitle]="savedCount()"
         >
           @if (store.error(); as error) {
             <div class="alert alert-danger mb-0">{{ error }}</div>
           } @else if (store.entities().length === 0) {
-            <p class="text-body-secondary mb-0">
+            <p class="text-body-secondary mb-0" i18n>
               No beneficiaries yet. Add someone to send them money.
             </p>
           } @else {
@@ -128,6 +138,7 @@ const fields = AddBeneficiaryRequestSchema.shape;
                         size="sm"
                         variant="danger"
                         (click)="remove(b.id)"
+                        i18n
                       >
                         Confirm remove
                       </button>
@@ -136,6 +147,7 @@ const fields = AddBeneficiaryRequestSchema.shape;
                         size="sm"
                         variant="outline-secondary"
                         (click)="confirmingId.set(null)"
+                        i18n
                       >
                         Keep
                       </button>
@@ -151,8 +163,9 @@ const fields = AddBeneficiaryRequestSchema.shape;
                         nbButton
                         size="sm"
                         variant="outline-secondary"
-                        [attr.aria-label]="'Remove ' + b.name"
+                        [attr.aria-label]="removeLabel(b.name)"
                         (click)="confirmingId.set(b.id)"
+                        i18n
                       >
                         Remove
                       </button>
@@ -170,6 +183,12 @@ const fields = AddBeneficiaryRequestSchema.shape;
 export class Beneficiaries {
   protected readonly store = inject(BeneficiariesStore);
   protected readonly max = MAX_BENEFICIARIES_PER_USER;
+  protected readonly savedCount = computed(
+    () =>
+      $localize`${this.store.ids().length}:count: of ${this.max}:max: saved`,
+  );
+  protected readonly removeLabel = (name: string) =>
+    $localize`Remove ${name}:name:`;
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
     name: ['', zodValidator(fields.name)],

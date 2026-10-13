@@ -15,6 +15,8 @@ import { ThemeSwitcher } from '@neobank/web/ui/theme';
 import { AuthStore } from './core/auth/auth.store';
 import { IdleLogoutService } from './core/auth/idle-logout.service';
 import { IdleWarning } from './core/auth/idle-warning';
+import { LanguageService } from './core/i18n/language.service';
+import { LanguageSwitcher } from './core/i18n/language-switcher';
 import { ToastService } from './core/toast/toast.service';
 import { Toasts } from './core/toast/toasts';
 
@@ -25,6 +27,7 @@ import { Toasts } from './core/toast/toasts';
     RouterLink,
     RouterLinkActive,
     ThemeSwitcher,
+    LanguageSwitcher,
     Toasts,
     IdleWarning,
   ],
@@ -51,6 +54,7 @@ import { Toasts } from './core/toast/toasts';
               type="button"
               class="btn btn-sm btn-outline-light"
               (click)="logout()"
+              i18n
             >
               Log out
             </button>
@@ -58,12 +62,17 @@ import { Toasts } from './core/toast/toasts';
             <a
               class="btn btn-sm btn-outline-light nb-guest-only"
               routerLink="/login"
+              i18n
               >Log in</a
             >
-            <a class="btn btn-sm btn-light nb-guest-only" routerLink="/register"
+            <a
+              class="btn btn-sm btn-light nb-guest-only"
+              routerLink="/register"
+              i18n
               >Open account</a
             >
           }
+          <nb-language-switcher />
           <nb-theme-switcher />
         </div>
       </div>
@@ -73,7 +82,7 @@ import { Toasts } from './core/toast/toasts';
       <router-outlet />
     </main>
 
-    <footer class="container pb-4 small text-body-secondary">
+    <footer class="container pb-4 small text-body-secondary" i18n>
       Demo application for learning – not a real bank. No real money moves.
     </footer>
 
@@ -89,6 +98,8 @@ export class App {
   constructor() {
     // Starts watching for inactivity whenever someone is signed in.
     inject(IdleLogoutService);
+    // Applies the profile's language after signing in on a new device.
+    inject(LanguageService);
     // The session is known now: show signed-out buttons again if they apply
     // (index.html hid them while a session was likely).
     afterNextRender(() =>
@@ -97,17 +108,19 @@ export class App {
   }
 
   protected readonly links = computed(() => [
-    { path: '/dashboard', label: 'Dashboard' },
-    { path: '/transactions', label: 'Transactions' },
-    { path: '/transfer', label: 'Transfer' },
-    { path: '/beneficiaries', label: 'Beneficiaries' },
-    { path: '/security', label: 'Security' },
-    ...(this.auth.isAdmin() ? [{ path: '/admin', label: 'Admin' }] : []),
+    { path: '/dashboard', label: $localize`Dashboard` },
+    { path: '/transactions', label: $localize`Transactions` },
+    { path: '/transfer', label: $localize`Transfer` },
+    { path: '/beneficiaries', label: $localize`Beneficiaries` },
+    { path: '/security', label: $localize`Security` },
+    ...(this.auth.isAdmin()
+      ? [{ path: '/admin', label: $localize`Admin` }]
+      : []),
   ]);
 
   async logout(): Promise<void> {
     await this.auth.logout();
     await this.router.navigateByUrl('/login');
-    this.toasts.info("You're logged out");
+    this.toasts.info($localize`You're logged out`);
   }
 }

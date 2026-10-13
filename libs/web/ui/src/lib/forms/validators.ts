@@ -6,6 +6,7 @@ import type {
 } from '@angular/forms';
 import type { $ZodType } from 'zod/v4/core';
 import { safeParse } from 'zod/mini';
+import { translateValidationMessage } from './messages';
 
 /**
  * Turns a Zod schema into an Angular validator, so form controls use the
@@ -37,9 +38,9 @@ export function applyServerErrors(
 /** Human-readable text for the first error on a control. */
 export function errorMessage(errors: ValidationErrors | null): string | null {
   if (!errors) return null;
-  if (errors['server']) return errors['server'];
-  if (errors['zod']) return errors['zod'];
-  if (errors['required']) return 'This field is required';
+  if (errors['server']) return translateValidationMessage(errors['server']);
+  if (errors['zod']) return translateValidationMessage(errors['zod']);
+  if (errors['required']) return $localize`This field is required`;
   if (errors['mismatch']) return errors['mismatch'];
-  return 'Invalid value';
+  return $localize`Invalid value`;
 }

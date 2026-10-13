@@ -4,6 +4,7 @@ export * from './lib/button/button';
 export * from './lib/card/card';
 export * from './lib/forms/form-field';
 export * from './lib/forms/input';
+export * from './lib/forms/messages';
 export * from './lib/forms/validators';
 export * from './lib/theme/theme-switcher';
 export * from './lib/theme/theme.service';

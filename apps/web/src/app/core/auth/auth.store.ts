@@ -102,6 +102,12 @@ export const AuthStore = signalStore(
           if (user) patchState(store, { user: { ...user, mfaEnabled } });
         },
 
+        /** Mirrors a profile change the API has accepted. */
+        patchUser(changes: Partial<UserDto>): void {
+          const user = store.user();
+          if (user) patchState(store, { user: { ...user, ...changes } });
+        },
+
         async register(details: RegisterRequest): Promise<void> {
           setSession(await firstValueFrom(api.register(details)));
         },

@@ -1,6 +1,6 @@
 /** "Chrome on Windows" from a User-Agent string (good enough for a sessions list). */
 export function describeDevice(userAgent: string): string {
-  if (!userAgent) return 'Unknown device';
+  if (!userAgent) return $localize`Unknown device`;
 
   const browser =
     [
@@ -10,7 +10,7 @@ export function describeDevice(userAgent: string): string {
       [/Chrome\/|CriOS/, 'Chrome'],
       [/Safari\//, 'Safari'],
     ].find(([pattern]) => (pattern as RegExp).test(userAgent))?.[1] ??
-    'Browser';
+    $localize`Browser`;
 
   const os =
     [
@@ -21,5 +21,7 @@ export function describeDevice(userAgent: string): string {
       [/Linux/, 'Linux'],
     ].find(([pattern]) => (pattern as RegExp).test(userAgent))?.[1] ?? '';
 
-  return os ? `${browser} on ${os}` : (browser as string);
+  return os
+    ? $localize`${browser}:browser: on ${os}:system:`
+    : (browser as string);
 }

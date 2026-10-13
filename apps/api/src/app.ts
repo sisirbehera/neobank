@@ -4,7 +4,8 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { resolve } from 'node:path';
 import type { AppConfig } from './config/app-config';
-import { loadWebApp, pageFor } from './lib/web-app';
+import { LANGUAGE_COOKIE } from '@neobank/shared/models';
+import { loadWebApp, preferredLanguage, resolvePage } from './lib/web-app';
 import { apiNotFound, errorHandler } from './middleware/error-handler';
 import { adminRoutes } from './modules/admin/admin.routes';
 import { accountsRoutes } from './modules/accounts/accounts.routes';
@@ -88,11 +89,29 @@ export function createApp(config: AppConfig) {
       }),
     );
     // Pages: the one built ahead of time for this address, or the shell that
-    // Angular's router fills in. HTML is never cached, so users always get
-    // the newest bundle names.
+    // Angular's router fills in. An address without a language goes to the
+    // visitor's language. HTML is never cached, so users always get the
+    // newest bundle names.
     app.get('/{*path}', (req, res) => {
+      const result = resolvePage(web, req.path, () =>
+        preferredLanguage(
+          web,
+          req.cookies[LANGUAGE_COOKIE],
+          req.get('accept-language'),
+        ),
+      );
+      if ('redirectTo' in result) {
+        const query = req.originalUrl.slice(req.path.length);
+        // The answer depends on the cookie and the browser's languages.
+        res.set({
+          'Cache-Control': 'no-store',
+          Vary: 'Cookie, Accept-Language',
+        });
+        res.redirect(302, result.redirectTo + query);
+        return;
+      }
       res.set('Cache-Control', 'no-cache');
-      res.sendFile(pageFor(web, req.path));
+      res.sendFile(result.file);
     });
   }
 

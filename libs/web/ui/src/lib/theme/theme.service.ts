@@ -19,9 +19,14 @@ export interface ThemeOption {
 }
 
 export const THEMES: readonly ThemeOption[] = [
-  { id: 'light', label: 'Light', mode: 'light', swatch: '#0b5ed7' },
-  { id: 'dark', label: 'Dark', mode: 'dark', swatch: '#212529' },
-  { id: 'emerald', label: 'Emerald', mode: 'light', swatch: '#0f7b5f' },
+  { id: 'light', label: $localize`Light`, mode: 'light', swatch: '#0b5ed7' },
+  { id: 'dark', label: $localize`Dark`, mode: 'dark', swatch: '#212529' },
+  {
+    id: 'emerald',
+    label: $localize`Emerald`,
+    mode: 'light',
+    swatch: '#0f7b5f',
+  },
 ];
 
 const STORAGE_KEY = 'nb-theme';

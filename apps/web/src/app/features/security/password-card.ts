@@ -29,7 +29,7 @@ import { SecurityApi } from '../../core/security/security.api';
 function matchesNewPassword(control: AbstractControl): ValidationErrors | null {
   return control.value === control.parent?.get('newPassword')?.value
     ? null
-    : { mismatch: 'Passwords do not match' };
+    : { mismatch: $localize`Passwords do not match` };
 }
 
 @Component({
@@ -37,9 +37,9 @@ function matchesNewPassword(control: AbstractControl): ValidationErrors | null {
   imports: [ReactiveFormsModule, Card, Button, FormField, Input],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <nb-card title="Change password">
+    <nb-card title="Change password" i18n-title>
       @if (done()) {
-        <div class="alert alert-success" role="status">
+        <div class="alert alert-success" role="status" i18n>
           Password changed. Your other devices were signed out.
         </div>
       }
@@ -47,7 +47,7 @@ function matchesNewPassword(control: AbstractControl): ValidationErrors | null {
         <div class="alert alert-danger" role="alert">{{ error }}</div>
       }
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-        <nb-form-field label="Current password">
+        <nb-form-field label="Current password" i18n-label>
           <input
             nbInput
             id="currentPassword"
@@ -58,7 +58,9 @@ function matchesNewPassword(control: AbstractControl): ValidationErrors | null {
         </nb-form-field>
         <nb-form-field
           label="New password"
+          i18n-label
           hint="At least 8 characters, with a letter and a number."
+          i18n-hint
         >
           <input
             nbInput
@@ -68,7 +70,7 @@ function matchesNewPassword(control: AbstractControl): ValidationErrors | null {
             formControlName="newPassword"
           />
         </nb-form-field>
-        <nb-form-field label="Confirm new password">
+        <nb-form-field label="Confirm new password" i18n-label>
           <input
             nbInput
             id="confirmNewPassword"
@@ -77,7 +79,7 @@ function matchesNewPassword(control: AbstractControl): ValidationErrors | null {
             formControlName="confirmPassword"
           />
         </nb-form-field>
-        <button nbButton type="submit" [loading]="pending()">
+        <button nbButton type="submit" [loading]="pending()" i18n>
           Change password
         </button>
       </form>
@@ -93,7 +95,9 @@ export class PasswordCard {
     currentPassword: [
       '',
       zodValidator(
-        z.string().check(z.minLength(1, 'Current password is required')),
+        z
+          .string()
+          .check(z.minLength(1, $localize`Current password is required`)),
       ),
     ],
     newPassword: ['', zodValidator(NewPasswordSchema)],

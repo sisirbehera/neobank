@@ -166,3 +166,24 @@ Live since 2026-10-09 at https://neobank-sisir.onrender.com.
 3. **Signed-in visitors saw "Log in" buttons flash.** Pages are built signed out. **Fix:** the early script reads the `nb_session` hint cookie and hides signed-out buttons until Angular knows the answer.
 4. **Changing the early script broke nothing locally, but would have broken the live site** if the CSP hashes had been fixed in configuration. Computing them at startup, plus a smoke test that checks every inline script against the CSP, closes that gap.
 5. **The browser tests failed for reasons outside the code.** Playwright reused a dev server left running from the night before, which predated the SSR setup. Its API's sign-in rate-limit counter had also filled up across many runs, so registration got `429`. **Lesson:** when tests fail in a way the change can't explain, check what is actually serving the requests.
+
+## Day 10: English and Hindi
+
+**Built:** the customer screens in English and Hindi, under `/en/` and `/hi/`; a language switcher that keeps the page; the choice remembered on the device and on the profile; amounts, dates and chart labels per language; API and validation errors in the page's language ([0013](decisions/0013-built-in-i18n-per-language-builds.md)).
+
+**Concepts**
+
+- **Compile-time vs runtime translation.** Angular's built-in i18n bakes each language into its own build; libraries like Transloco look strings up while the app runs. Built-in means no lookup cost, pre-built pages in every language for free, and a build that fails on a missing translation. The price is a page reload when switching.
+- **Messages have IDs derived from their text.** `extract-i18n` collects every `i18n` attribute and `$localize` string into `messages.json`. Changing the English changes the ID, so the old translation stops matching, and the strict build says so.
+- **Placeholders and plurals.** A message keeps markup and values as placeholders (`{$START_LINK}`, `{$INTERPOLATION}`), so a translator can move them, as Hindi word order needs: "{$system} पर {$browser}". Counts use ICU plural syntax, `{n, plural, =1 {…} other {…}}`, because each language has its own plural rules.
+- **Codes and data for programs, messages for people.** The API keeps English messages for logs and the API docs. Each error also carries a code and, where needed, numbers in `meta`, and the browser writes the sentence in its language.
+- **Locale-aware formatting comes from `Intl`.** Hindi keeps Latin digits and lakh grouping, and has its own short forms: "₹85 हज़ार", "₹1.2 लाख". `Intl` puts a non-breaking space in "85 हज़ार", so the two parts never split across lines.
+- **The last explicit choice wins.** A device choice (cookie) beats the profile, and the profile beats the browser's default. A default must never be stored as if it were a choice.
+
+**Bugs**
+
+1. **Importing one function pulled the whole UI library into the first download (+17 KB).** `registerValidationMessages` came from `@neobank/web/ui`'s main entry, which also exports the chart and the forms. **Fix:** a second tiny entry point, `@neobank/web/ui/messages`, as Day 7 did for the theme. **Lesson:** read the bundle report after adding an import to the app shell.
+2. **Hydration silently stopped.** After the templates were marked for translation, Angular hydrated 0 components and redrew every page, so text typed before loading was lost again. Components with `i18n` blocks are only hydrated with `withI18nSupport()`. A slow-network browser test caught it; the console message "hydrated 0 component(s)" confirmed it.
+3. **A profile default would have overridden real choices.** Every user's language defaulted to `en`, so a Hindi visitor who never chose would be switched to English after signing in, including everyone on the shared demo login. **Fix:** the profile's language stays empty until the user chooses.
+4. **Two test servers shared one build folder.** The production test server built the API into `apps/api/dist`, where the dev API runs from. The dev API restarted on every such build and lost its in-memory database, so random registrations failed. **Fix:** an `e2e` build configuration with its own output folder. The esbuild executor's `--outputPath` override moved only `package.json`, not `main.js`, which is why it needed a named configuration.
+5. **Unit tests use Angular's default locale, `en-US`,** which formats ₹12,34,567 as ₹1,234,567. The app is built for `en-IN`, so the tests now set `LOCALE_ID` explicitly. Tests also load `@angular/localize/init`, which the app gets from its polyfills.
