@@ -19,7 +19,7 @@ jobs:
       # Override with a repository variable if the service is renamed.
       APP_URL: ${{ vars.APP_URL || 'https://neobank-sisir.onrender.com' }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v5
         with:
           node-version: 24
